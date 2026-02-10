@@ -8,6 +8,9 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
       margin: 0;
@@ -213,6 +216,10 @@
                 <input type="text" id="responsavel" required />
               </div>
               <div class="form-group">
+                <label>Telefone (WhatsApp)</label>
+                <input type="text" id="telefone" placeholder="5599999999999" />
+              </div>
+              <div class="form-group">
                 <label>Descrição</label>
                 <textarea id="descricao" rows="2"></textarea>
               </div>
@@ -220,6 +227,12 @@
             <br />
             <button type="submit" class="btn">Salvar Registro</button>
           </form>
+        </div>
+
+        <div class="card">
+          <h2>Importar Cadastros</h2>
+          <input type="file" id="fileImport" accept=".csv,.xlsx,.xls" />
+          <p class="muted">Importe registros em CSV ou Excel.</p>
         </div>
 
         <div class="card">
@@ -232,7 +245,9 @@
                 <th>Status</th>
                 <th>Criticidade</th>
                 <th>Responsável</th>
+                <th>Telefone</th>
                 <th>Descrição</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody id="tbodyRegistros"></tbody>
@@ -354,6 +369,14 @@
 </footer>
 
 <script>
+  /***********************
+   * CONFIG SUPABASE
+   ***********************/
+  const SUPABASE_URL = "SUPABASE_URL";
+  const SUPABASE_ANON_KEY = "SUPABASE_ANON_KEY";
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   let data = [];
 
   let pieStatus, pieCrit, barHosp, barResp;
@@ -375,7 +398,20 @@
     if(win){ win.focus(); }
   }
 
-  document.getElementById("formRegistro").addEventListener("submit", function(e){
+  /***********************
+   * CRUD REGISTROS
+   ***********************/
+  async function loadRegistros(){
+    const { data: rows, error } = await supabase.from("registros").select("*").order("id", { ascending: false });
+    if(error){
+      alert("Erro ao carregar registros: " + error.message);
+      return;
+    }
+    data = rows || [];
+    renderTable();
+  }
+
+  document.getElementById("formRegistro").addEventListener("submit", async function(e){
     e.preventDefault();
 
     const registro = {
@@ -384,13 +420,47 @@
       status: status.value,
       criticidade: criticidade.value,
       responsavel: responsavel.value.trim(),
+      telefone: telefone.value.trim(),
       descricao: descricao.value.trim()
     };
 
-    data.push(registro);
+    const { error } = await supabase.from("registros").insert([registro]);
+    if(error){
+      alert("Erro ao salvar: " + error.message);
+      return;
+    }
+
     this.reset();
-    renderTable();
+    await loadRegistros();
   });
+
+  async function deleteRegistro(id){
+    if(!confirm("Deseja realmente excluir este registro?")) return;
+    const { error } = await supabase.from("registros").delete().eq("id", id);
+    if(error){
+      alert("Erro ao excluir: " + error.message);
+      return;
+    }
+    await loadRegistros();
+  }
+
+  function sendWhatsApp(r){
+    if(!r.telefone){
+      alert("Telefone não informado.");
+      return;
+    }
+    const msg = encodeURIComponent(
+      `Olá ${r.responsavel},\n\n` +
+      `Segue registro do GTEC:\n` +
+      `Hospital: ${r.hospital}\n` +
+      `Setor: ${r.setor}\n` +
+      `Status: ${r.status}\n` +
+      `Criticidade: ${r.criticidade}\n` +
+      `Descrição: ${r.descricao || "-"}`
+    );
+    const url = `https://wa.me/${r.telefone}?text=${msg}`;
+    window.open(url, "_blank");
+  }
 
   function renderTable(){
     const tbody = document.getElementById("tbodyRegistros");
@@ -398,17 +468,71 @@
     data.forEach(r => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${r.hospital}</td>
-        <td>${r.setor}</td>
-        <td>${r.status}</td>
-        <td>${r.criticidade}</td>
-        <td>${r.responsavel}</td>
-        <td>${r.descricao}</td>
+        <td>${r.hospital || ""}</td>
+        <td>${r.setor || ""}</td>
+        <td>${r.status || ""}</td>
+        <td>${r.criticidade || ""}</td>
+        <td>${r.responsavel || ""}</td>
+        <td>${r.telefone || ""}</td>
+        <td>${r.descricao || ""}</td>
+        <td>
+          <button class="btn" onclick='sendWhatsApp(${JSON.stringify(r)})'>WhatsApp</button>
+          <button class="btn" onclick="deleteRegistro(${r.id})">Excluir</button>
+        </td>
       `;
       tbody.appendChild(tr);
     });
   }
 
+  /***********************
+   * IMPORTAÇÃO (CSV / XLS)
+   ***********************/
+  document.getElementById("fileImport").addEventListener("change", async function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(evt){
+      const text = evt.target.result;
+      const rows = parseCSV(text);
+      if(!rows.length){
+        alert("Nenhum registro encontrado no arquivo.");
+        return;
+      }
+
+      const { error } = await supabase.from("registros").insert(rows);
+      if(error){
+        alert("Erro ao importar: " + error.message);
+        return;
+      }
+
+      alert("Importação concluída!");
+      await loadRegistros();
+    };
+    reader.readAsText(file, "UTF-8");
+  });
+
+  function parseCSV(text){
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if(lines.length < 2) return [];
+
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+    const result = [];
+
+    for(let i = 1; i < lines.length; i++){
+      const cols = lines[i].split(",");
+      const obj = {};
+      headers.forEach((h, idx) => {
+        obj[h] = (cols[idx] || "").trim();
+      });
+      result.push(obj);
+    }
+    return result;
+  }
+
+  /***********************
+   * UTILITÁRIOS
+   ***********************/
   function normalize(val){
     return (val || "").toString().trim().toLowerCase();
   }
@@ -458,6 +582,9 @@
     kh_pend.textContent = pend;
   }
 
+  /***********************
+   * DASHBOARD GERAL
+   ***********************/
   function renderDashboards(){
     setKpis();
 
@@ -529,6 +656,9 @@
     renderDashHospital();
   }
 
+  /***********************
+   * DASHBOARD POR HOSPITAL
+   ***********************/
   function renderDashHospital(){
     const sel = document.getElementById("selHospital");
     const hospital = sel.value;
@@ -588,6 +718,10 @@
     }
   }
 
+  /***********************
+   * INICIALIZAÇÃO
+   ***********************/
+  loadRegistros();
   showPage("registros");
 </script>
 
