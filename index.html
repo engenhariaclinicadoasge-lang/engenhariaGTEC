@@ -424,32 +424,54 @@
   </section>
 
   <!-- ===================== DASH GERAL ===================== -->
-  <section id="page-dash-geral" class="hidden">
-    <div class="grid">
-      <div class="card">
-        <h2>Dashboard Geral</h2>
-        <p class="muted">Resumo automático baseado nos registros do Supabase.</p>
+<section id="page-dash-geral" class="hidden">
+  <div class="grid">
+    <div class="card">
+      <h2>Dashboard Geral</h2>
+      <p class="muted">Visão geral dos processos do GTEC.</p>
 
-        <div class="kpis" style="margin-top:10px;">
-          <div class="kpi"><div class="t">Total</div><div class="v" id="k_total">0</div></div>
-          <div class="kpi"><div class="t">Tramitados</div><div class="v" id="k_tram">0</div></div>
-          <div class="kpi"><div class="t">Em andamento</div><div class="v" id="k_and">0</div></div>
-          <div class="kpi"><div class="t">Em validação</div><div class="v" id="k_val">0</div></div>
-          <div class="kpi"><div class="t">Pendentes</div><div class="v" id="k_pend">0</div></div>
+      <div class="kpis" style="margin-top:10px;">
+        <div class="kpi"><div class="t">Total</div><div class="v" id="k_total">0</div></div>
+        <div class="kpi"><div class="t">Tramitados</div><div class="v" id="k_tram">0</div></div>
+        <div class="kpi"><div class="t">Em andamento</div><div class="v" id="k_and">0</div></div>
+        <div class="kpi"><div class="t">Em validação</div><div class="v" id="k_val">0</div></div>
+        <div class="kpi"><div class="t">Pendentes</div><div class="v" id="k_pend">0</div></div>
+      </div>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 style="margin:0 0 8px;">Distribuição por Status</h3>
+        <div style="height:280px;">
+          <canvas id="pieStatus"></canvas>
         </div>
       </div>
 
-      <div class="grid cols-2">
-        <div class="chart"><h3>Status (Pizza)</h3><canvas id="pieStatus"></canvas></div>
-        <div class="chart"><h3>Criticidade (Pizza)</h3><canvas id="pieCrit"></canvas></div>
-      </div>
-
-      <div class="grid cols-2">
-        <div class="chart"><h3>Top Hospitais (Barra)</h3><canvas id="barHospitais"></canvas></div>
-        <div class="chart"><h3>Top Responsáveis (Barra)</h3><canvas id="barResponsaveis"></canvas></div>
+      <div class="card">
+        <h3 style="margin:0 0 8px;">Distribuição por Criticidade</h3>
+        <div style="height:280px;">
+          <canvas id="pieCrit"></canvas>
+        </div>
       </div>
     </div>
-  </section>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 style="margin:0 0 8px;">Top Hospitais</h3>
+        <div style="height:300px;">
+          <canvas id="barHospitais"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 8px;">Top Responsáveis</h3>
+        <div style="height:300px;">
+          <canvas id="barResponsaveis"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
   <!-- ===================== DASH HOSPITAL ===================== -->
   <section id="page-dash-hospital" class="hidden">
@@ -1008,34 +1030,44 @@ function renderDashboards(){
   barHosp   = destroyIf(barHosp);
   barResp   = destroyIf(barResp);
 
+  const baseOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: true },
+      title: { display: false }
+    }
+  };
+
   if($("pieStatus")){
     pieStatus = new Chart($("pieStatus"), {
       type:"pie",
-      data:{ labels: st.labels, datasets:[{ label:"Status", data: st.values }] },
-      options:{ responsive:true }
+      data:{ labels: st.labels, datasets:[{ data: st.values }] },
+      options: baseOptions
     });
   }
   if($("pieCrit")){
     pieCrit = new Chart($("pieCrit"), {
       type:"pie",
-      data:{ labels: cr.labels, datasets:[{ label:"Criticidade", data: cr.values }] },
-      options:{ responsive:true }
+      data:{ labels: cr.labels, datasets:[{ data: cr.values }] },
+      options: baseOptions
     });
   }
   if($("barHospitais")){
     const top = { labels: h.labels.slice(0,10), values: h.values.slice(0,10) };
     barHosp = new Chart($("barHospitais"), {
       type:"bar",
-      data:{ labels: top.labels, datasets:[{ label:"Top hospitais", data: top.values }] },
-      options:{ responsive:true }
+      data:{ labels: top.labels, datasets:[{ data: top.values }] },
+      options: baseOptions
     });
   }
   if($("barResponsaveis")){
     const top = { labels: rp.labels.slice(0,10), values: rp.values.slice(0,10) };
     barResp = new Chart($("barResponsaveis"), {
       type:"bar",
-      data:{ labels: top.labels, datasets:[{ label:"Top responsáveis", data: top.values }] },
-      options:{ responsive:true }
+      data:{ labels: top.labels, datasets:[{ data: top.values }] },
+      options: baseOptions
     });
   }
 
