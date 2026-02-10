@@ -249,6 +249,7 @@
 
       <nav>
         <button class="tab active" data-page="cadastro">Cadastro</button>
+        <button class="tab" data-page="registros">Registros</button>
         <button class="tab" data-page="dash-geral">Dashboard Geral</button>
         <button class="tab" data-page="dash-hospital">Dashboard por Hospital</button>
       </nav>
@@ -362,7 +363,10 @@
         <button id="btnImportExcel">Importar Excel para Supabase</button>
       </div>
     </div>
+  </section>
 
+  <!-- ===================== REGISTROS ===================== -->
+  <section id="page-registros" class="hidden">
     <div class="card">
       <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
         <div>
@@ -938,7 +942,6 @@ async function importExcel(){
       return toast("Há linhas faltando campos obrigatórios (data/hospital/assunto/destino/responsavel).");
     }
 
-    // valida hospital contra lista (se não estiver, bloqueia)
     const badHosp = payload.find(p => !HOSPITAIS.includes(p.hospital));
     if(badHosp){
       return toast(`Hospital inválido na planilha: "${badHosp.hospital}". Use exatamente um nome da lista.`);
@@ -1036,7 +1039,6 @@ function renderDashboards(){
     });
   }
 
-  // hospital selector (dashboard)
   const sel = $("selHospital");
   const hospitals = [...new Set(data.map(r => normalize(r.hospital)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   sel.innerHTML = "";
@@ -1186,9 +1188,10 @@ function previewWhatsApp(){
 function goPage(page){
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.page === page));
   $("page-cadastro").classList.toggle("hidden", page !== "cadastro");
+  $("page-registros").classList.toggle("hidden", page !== "registros");
   $("page-dash-geral").classList.toggle("hidden", page !== "dash-geral");
   $("page-dash-hospital").classList.toggle("hidden", page !== "dash-hospital");
-  if(page !== "cadastro") renderDashboards();
+  if(page !== "cadastro" && page !== "registros") renderDashboards();
 }
 document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => goPage(btn.dataset.page)));
 
