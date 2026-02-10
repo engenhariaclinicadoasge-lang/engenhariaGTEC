@@ -68,16 +68,16 @@
 
     main{padding:18px 0 40px;}
     .grid{display:grid; gap:14px;}
-    .grid.cols-2{grid-template-columns:repeat(2, minmax(0,1fr));}
+    .grid.cols-2{grid-template-columns:repeat(3, minmax(0,2fr));}
     .grid.cols-3{grid-template-columns:repeat(3, minmax(0,1fr));}
     @media (max-width:900px){ .grid.cols-2, .grid.cols-3{grid-template-columns:1fr;} }
 
     .card{
       background:var(--card);
       border:1px solid var(--line);
-      border-radius:18px;
+      border-radius:20px;
       box-shadow: var(--shadow);
-      padding:14px;
+      padding:16px;
     }
     .card h2{margin:0 0 10px; font-size:14px}
     .muted{color:var(--muted); font-size:12px}
@@ -1285,6 +1285,7 @@ $("btnGemini").addEventListener("click", () => {
 </script>
 </body>
 </html>
+
 
 
 
