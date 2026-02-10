@@ -264,91 +264,7 @@
 
 <main class="wrap">
   <!-- ===================== REGISTRO ===================== -->
-  <section id="page-registro" class="hidden grid cols-2">
-    <div class="card">
-      <h2>Novo registro</h2>
-      <p class="muted">Setor fixo em <b>GTEC - Grupo Tecnico de Engenharia Clinica</b>.</p>
-
-      <div class="row">
-        <div>
-          <label>Número do processo</label>
-          <input id="f_numero" placeholder="Ex: 2026/000123" />
-        </div>
-        <div>
-          <label>Setor (fixo)</label>
-          <input id="f_setor" readonly />
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Data</label>
-          <input id="f_data" type="date" />
-        </div>
-        <div>
-          <label>Hospital</label>
-          <select id="f_hospital"></select>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Assunto</label>
-          <input id="f_assunto" placeholder="Ex: Termo de Referência" />
-        </div>
-        <div>
-          <label>Destino</label>
-          <input id="f_destino" placeholder="Ex: Setor Y / SEI / Comissão" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Responsável</label>
-          <input id="f_responsavel" placeholder="Ex: João Pedro" />
-        </div>
-        <div>
-          <label>Status</label>
-          <select id="f_status">
-            <option value="Em andamento">Em andamento</option>
-            <option value="Em validação">Em validação</option>
-            <option value="Pendente">Pendente</option>
-            <option value="Tramitado">Tramitado</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Criticidade</label>
-          <select id="f_criticidade">
-            <option value="Baixa">Baixa</option>
-            <option value="Média" selected>Média</option>
-            <option value="Alta">Alta</option>
-          </select>
-          <div class="muted">Entra no dashboard.</div>
-        </div>
-        <div>
-          <label>&nbsp;</label>
-          <div class="pill">“Editar” só aparece se status = <b>Em andamento</b></div>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="primary" id="btnSalvar">Salvar</button>
-        <button class="ghost" id="btnLimpar">Limpar</button>
-        <button class="ghost" id="btnRecarregar" title="Recarrega do Supabase">Recarregar</button>
-      </div>
-
-      <div id="editBanner" class="notice hidden" style="margin-top:12px;">
-        Editando um registro (somente quando Status = <b>Em andamento</b>). Clique em <b>Salvar</b> para atualizar.
-        <button id="btnCancelarEdicao" class="ghost small" style="margin-left:10px;">Cancelar edição</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== CADASTRO ===================== -->
-  <section id="page-cadastro" class="grid cols-2">
+ <section id="page-cadastro" class="grid cols-2">
     <div class="card">
       <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
         <div>
@@ -455,6 +371,94 @@
       </div>
     </div>
   </section>
+
+  <!-- ===================== CADASTRO ===================== -->
+ <section id="page-registro" class="hidden grid cols-2">
+    <div class="card">
+      <h2>Novo registro</h2>
+      <p class="muted">Setor fixo em <b>GTEC - Grupo Tecnico de Engenharia Clinica</b>.</p>
+
+      <div class="row">
+        <div>
+          <label>Número do processo</label>
+          <input id="f_numero" placeholder="Ex: 2026/000123" />
+        </div>
+        <div>
+          <label>Setor (fixo)</label>
+          <input id="f_setor" readonly />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Data</label>
+          <input id="f_data" type="date" />
+        </div>
+        <div>
+          <label>Hospital</label>
+          <select id="f_hospital"></select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Assunto</label>
+          <input id="f_assunto" placeholder="Ex: Termo de Referência" />
+        </div>
+        <div>
+          <label>Destino</label>
+          <input id="f_destino" placeholder="Ex: Setor Y / SEI / Comissão" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Responsável</label>
+          <input id="f_responsavel" placeholder="Ex: João Pedro" />
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="f_status">
+            <option value="Em andamento">Em andamento</option>
+            <option value="Em validação">Em validação</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Tramitado">Tramitado</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Criticidade</label>
+          <select id="f_criticidade">
+            <option value="Baixa">Baixa</option>
+            <option value="Média" selected>Média</option>
+            <option value="Alta">Alta</option>
+          </select>
+          <div class="muted">Entra no dashboard.</div>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <div class="pill">“Editar” só aparece se status = <b>Em andamento</b></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="btnSalvar">Salvar</button>
+        <button class="ghost" id="btnLimpar">Limpar</button>
+        <button class="ghost" id="btnRecarregar" title="Recarrega do Supabase">Recarregar</button>
+      </div>
+
+      <div id="editBanner" class="notice hidden" style="margin-top:12px;">
+        Editando um registro (somente quando Status = <b>Em andamento</b>). Clique em <b>Salvar</b> para atualizar.
+        <button id="btnCancelarEdicao" class="ghost small" style="margin-left:10px;">Cancelar edição</button>
+      </div>
+    </div>
+  </section>
+
+
+  
+ 
 
   <!-- ===================== DASH HOSPITAL ===================== -->
   <section id="page-dash-hospital" class="hidden">
@@ -1275,3 +1279,4 @@ $("btnGemini").addEventListener("click", () => {
 </script>
 </body>
 </html>
+
