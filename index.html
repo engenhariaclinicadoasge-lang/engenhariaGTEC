@@ -1,742 +1,1272 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <title>Engenharia Clínica GTEC</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Controle de Processos (Supabase + Excel)</title>
 
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+  <!-- SheetJS (Excel) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #f5f7fb;
-      color: #222;
+    :root{
+      --bg0:#070c16; --bg1:#0b1220;
+      --card: rgba(17,26,46,.9);
+      --card2: rgba(10,18,38,.6);
+      --muted:#94a3b8; --text:#e5e7eb;
+      --accent:#22c55e; --danger:#ef4444; --warn:#f59e0b;
+      --line:#24324f; --chip:#0f1a33; --input:#0a1226;
+      --shadow: 0 10px 30px rgba(0,0,0,.25);
+      --headerbg: rgba(11,18,32,.85);
+      --overlay: rgba(0,0,0,.55);
     }
-    header {
-      background: #1f2937;
-      color: #fff;
-      padding: 14px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    html[data-theme="light"]{
+      --bg0:#f6f8ff; --bg1:#eef2ff;
+      --card: rgba(255,255,255,.95);
+      --card2: rgba(255,255,255,.9);
+      --muted:#475569; --text:#0f172a;
+      --accent:#16a34a; --danger:#dc2626; --warn:#b45309;
+      --line:#d8dee9; --chip:#eef2ff; --input:#ffffff;
+      --shadow: 0 10px 25px rgba(2,6,23,.08);
+      --headerbg: rgba(255,255,255,.85);
+      --overlay: rgba(15,23,42,.35);
     }
-    header h1 {
-      margin: 0;
-      font-size: 18px;
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      background:linear-gradient(180deg,var(--bg0) 0%, var(--bg1) 35%, var(--bg1) 100%);
+      color:var(--text);
     }
-    .container {
-      display: flex;
-      height: calc(100vh - 56px);
+    header{
+      position:sticky; top:0; z-index:10;
+      background:var(--headerbg); backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--line);
     }
-    aside {
-      width: 220px;
-      background: #111827;
-      color: #fff;
-      padding: 12px;
-      box-sizing: border-box;
+    .wrap{max-width:1200px; margin:0 auto; padding:16px;}
+    .topbar{display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;}
+    .brand{display:flex; align-items:center; gap:10px;}
+    .logo{
+      width:38px; height:38px; border-radius:12px;
+      background:rgba(34,197,94,.12);
+      border:1px solid rgba(34,197,94,.35);
+      display:grid; place-items:center; color:var(--accent);
+      font-weight:800;
     }
-    aside button {
-      width: 100%;
-      margin-bottom: 8px;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      background: #1f2937;
-      color: #fff;
-      cursor: pointer;
-      text-align: left;
+    .brand h1{font-size:16px; margin:0}
+    .brand p{margin:0; color:var(--muted); font-size:12px}
+    nav{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+    .tab{
+      padding:10px 12px; border-radius:12px; border:1px solid var(--line);
+      background:transparent; color:var(--text); cursor:pointer; font-weight:600;
     }
-    aside button:hover {
-      background: #374151;
-    }
-    main {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-      box-sizing: border-box;
-    }
-    .hidden { display: none; }
+    .tab.active{background:rgba(34,197,94,.12); border-color:rgba(34,197,94,.35);}
 
-    .card {
-      background: #fff;
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    .card h2, .card h3 {
-      margin-top: 0;
-      margin-bottom: 8px;
-    }
-    .muted {
-      color: #6b7280;
-      font-size: 14px;
-    }
-    .grid {
-      display: grid;
-      gap: 16px;
-    }
-    .grid.cols-2 {
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    }
+    main{padding:18px 0 40px;}
+    .grid{display:grid; gap:14px;}
+    .grid.cols-2{grid-template-columns:repeat(2, minmax(0,1fr));}
+    .grid.cols-3{grid-template-columns:repeat(3, minmax(0,1fr));}
+    @media (max-width:900px){ .grid.cols-2, .grid.cols-3{grid-template-columns:1fr;} }
 
-    .kpis {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 12px;
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow: var(--shadow);
+      padding:14px;
     }
-    .kpi {
-      background: #f3f4f6;
-      border-radius: 8px;
-      padding: 12px;
-      text-align: center;
+    .card h2{margin:0 0 10px; font-size:14px}
+    .muted{color:var(--muted); font-size:12px}
+
+    label{display:block; font-size:12px; color:var(--muted); margin:8px 0 6px;}
+    input, select, textarea{
+      width:100%;
+      padding:11px 12px;
+      background:var(--input);
+      border:1px solid var(--line);
+      border-radius:12px;
+      color:var(--text);
+      outline:none;
     }
-    .kpi .t {
-      font-size: 12px;
-      color: #6b7280;
+    input:focus, select:focus, textarea:focus{
+      border-color:rgba(34,197,94,.6);
+      box-shadow:0 0 0 3px rgba(34,197,94,.12);
     }
-    .kpi .v {
-      font-size: 22px;
-      font-weight: bold;
-      margin-top: 4px;
+    input[readonly]{
+      opacity:.95;
+      cursor:not-allowed;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
+    .row{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;}
+    @media (max-width:700px){ .row{grid-template-columns:1fr;} }
+
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;}
+    button{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:var(--input);
+      color:var(--text);
+      cursor:pointer;
+      font-weight:700;
     }
-    th, td {
-      border: 1px solid #e5e7eb;
-      padding: 8px;
-      text-align: left;
+    button.primary{background:rgba(34,197,94,.12); border-color:rgba(34,197,94,.35);}
+    button.danger{background:rgba(239,68,68,.10); border-color:rgba(239,68,68,.35);}
+    button.ghost{background:transparent;}
+    button:hover{filter:brightness(1.05);}
+    button:disabled{opacity:.6; cursor:not-allowed;}
+
+    table{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden;}
+    thead th{
+      text-align:left; font-size:12px; color:var(--muted);
+      padding:10px 10px; border-bottom:1px solid var(--line);
+      position:sticky; top:0; background:var(--card);
+      white-space:nowrap;
     }
-    th {
-      background: #f3f4f6;
+    tbody td{
+      padding:10px 10px; border-bottom:1px solid rgba(36,50,79,.35);
+      font-size:13px; vertical-align:top;
+    }
+    tbody tr:hover{background:rgba(127,127,127,.06);}
+
+    .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 8px; border-radius:999px;
+      background:var(--chip);
+      border:1px solid rgba(148,163,184,.22);
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+      gap:12px;
+    }
+    .kpi{
+      padding:12px; border-radius:18px; border:1px solid var(--line);
+      background:var(--card2);
+    }
+    .kpi .v{font-size:20px; font-weight:900; margin-top:6px;}
+    .kpi .t{font-size:12px; color:var(--muted)}
+
+    .chart{
+      width:100%; height:260px;
+      border-radius:18px; border:1px solid var(--line);
+      background:var(--card2);
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+    }
+    .chart h3{margin:0 0 6px; font-size:13px;}
+    .chart canvas{flex:1;}
+
+    .notice{
+      padding:10px 12px; border-radius:14px;
+      background:rgba(245,158,11,.10);
+      border:1px solid rgba(245,158,11,.30);
+      color:inherit;
+      font-size:12px;
     }
 
-    input, select, textarea, button.btn {
-      width: 100%;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid #d1d5db;
-      box-sizing: border-box;
-      margin-bottom: 8px;
-    }
-    button.btn {
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-    }
-    button.btn:hover {
-      background: #1d4ed8;
-    }
+    .right{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+    .search{min-width:260px;}
+    .hidden{display:none !important;}
+    .small{font-size:12px;}
+    .divider{height:1px; background:var(--line); margin:10px 0;}
 
-    .row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 10px;
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px; border-radius:999px;
+      border:1px solid rgba(148,163,184,.22);
+      background:rgba(10,18,38,.06);
+      font-size:12px; color:var(--muted);
     }
+    html[data-theme="dark"] .pill{ background:rgba(10,18,38,.4); }
+    .ok{color:#16a34a}
+    .bad{color:#dc2626}
 
-    .top-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
+    .toolbar{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
+      margin-top:10px;
     }
+    .toolbar .group{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;}
+    .w240{min-width:240px;}
+    .w200{min-width:200px;}
 
-    .btn-secondary {
-      background: #10b981;
+    .modal-overlay{
+      position:fixed; inset:0;
+      background:var(--overlay);
+      display:flex; align-items:center; justify-content:center;
+      padding:16px;
+      z-index:9999;
     }
-    .btn-secondary:hover {
-      background: #059669;
+    .modal{
+      width:min(820px, 100%);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
     }
-
-    .btn-danger {
-      background: #ef4444;
+    .modal-header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
     }
-    .btn-danger:hover {
-      background: #dc2626;
+    .modal-header h3{margin:0; font-size:14px;}
+    .modal-body{padding:14px;}
+    .modal-footer{
+      display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;
+      padding:12px 14px;
+      border-top:1px solid var(--line);
     }
-
-    .btn-gray {
-      background: #6b7280;
-    }
-    .btn-gray:hover {
-      background: #4b5563;
-    }
-
-    .small {
-      font-size: 12px;
+    textarea#waPreviewText{
+      min-height:260px;
+      resize:vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size:12px;
+      line-height:1.4;
     }
   </style>
 </head>
-<body>
 
+<body>
 <header>
-  <h1>Engenharia Clínica GTEC</h1>
-  <div>
-    <button class="btn btn-secondary small" onclick="openGemini()">Chat-Gemini</button>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">CP</div>
+        <div>
+          <h1>Controle de Processos</h1>
+          <p>Supabase + Importação Excel + Dashboards</p>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="pill" id="connStatus">Conexão: <b class="bad">não verificada</b></div>
+        <button id="btnTheme" class="ghost" title="Alternar tema">🌙/☀️ Tema</button>
+        <button id="btnGemini" class="ghost" title="Abrir Chat Gemini">🤖 Chat-Gemini</button>
+      </div>
+
+      <nav>
+        <button class="tab active" data-page="cadastro">Cadastro</button>
+        <button class="tab" data-page="dash-geral">Dashboard Geral</button>
+        <button class="tab" data-page="dash-hospital">Dashboard por Hospital</button>
+      </nav>
+    </div>
   </div>
 </header>
 
-<div class="container">
-  <aside>
-    <button onclick="showPage('page-cadastro')">Cadastro</button>
-    <button onclick="showPage('page-registros')">Registros</button>
-    <button onclick="showPage('page-dash-geral')">Dashboard Geral</button>
-    <button onclick="showPage('page-dash-hospital')">Dashboard por Hospital</button>
-    <button onclick="showPage('page-importacao')">Importação</button>
-  </aside>
+<main class="wrap">
+  <!-- ===================== CADASTRO ===================== -->
+  <section id="page-cadastro" class="grid cols-2">
+    <div class="card">
+      <h2>Novo registro</h2>
+      <p class="muted">Setor fixo em <b>GTEC - Grupo Tecnico de Engenharia Clinica</b>.</p>
 
-  <main>
-
-    <!-- ===================== CADASTRO ===================== -->
-    <section id="page-cadastro" class="card">
-      <h2>Novo Registro</h2>
-      <p class="muted">Preencha os dados para criar um novo processo.</p>
-
-      <form id="formCadastro">
-        <div class="row">
-          <input type="text" id="f_hospital" placeholder="Hospital" required />
-          <input type="text" id="f_setor" placeholder="Setor" required />
-          <input type="text" id="f_responsavel" placeholder="Responsável" required />
-          <input type="text" id="f_protocolo" placeholder="Protocolo" />
-          <input type="text" id="f_status" placeholder="Status" required />
-          <input type="text" id="f_criticidade" placeholder="Criticidade" required />
+      <div class="row">
+        <div>
+          <label>Número do processo</label>
+          <input id="f_numero" placeholder="Ex: 2026/000123" />
         </div>
-        <textarea id="f_descricao" placeholder="Descrição" rows="3"></textarea>
-        <div class="row">
-          <input type="date" id="f_data" />
-          <input type="text" id="f_whatsapp" placeholder="WhatsApp (ex: 5511999999999)" />
+        <div>
+          <label>Setor (fixo)</label>
+          <input id="f_setor" readonly />
         </div>
+      </div>
 
-        <div class="top-actions">
-          <button type="submit" class="btn">Salvar Registro</button>
-          <button type="button" class="btn btn-secondary" onclick="enviarWhatsapp()">Enviar WhatsApp</button>
+      <div class="row">
+        <div>
+          <label>Data</label>
+          <input id="f_data" type="date" />
         </div>
-      </form>
-    </section>
+        <div>
+          <label>Hospital</label>
+          <select id="f_hospital"></select>
+        </div>
+      </div>
 
-    <!-- ===================== REGISTROS (NOVA ABA) ===================== -->
-    <section id="page-registros" class="hidden">
+      <div class="row">
+        <div>
+          <label>Assunto</label>
+          <input id="f_assunto" placeholder="Ex: Termo de Referência" />
+        </div>
+        <div>
+          <label>Destino</label>
+          <input id="f_destino" placeholder="Ex: Setor Y / SEI / Comissão" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Responsável</label>
+          <input id="f_responsavel" placeholder="Ex: João Pedro" />
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="f_status">
+            <option value="Em andamento">Em andamento</option>
+            <option value="Em validação">Em validação</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Tramitado">Tramitado</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Criticidade</label>
+          <select id="f_criticidade">
+            <option value="Baixa">Baixa</option>
+            <option value="Média" selected>Média</option>
+            <option value="Alta">Alta</option>
+          </select>
+          <div class="muted">Entra no dashboard.</div>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <div class="pill">“Editar” só aparece se status = <b>Em andamento</b></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="btnSalvar">Salvar</button>
+        <button class="ghost" id="btnLimpar">Limpar</button>
+        <button class="ghost" id="btnRecarregar" title="Recarrega do Supabase">Recarregar</button>
+      </div>
+
+      <div id="editBanner" class="notice hidden" style="margin-top:12px;">
+        Editando um registro (somente quando Status = <b>Em andamento</b>). Clique em <b>Salvar</b> para atualizar.
+        <button id="btnCancelarEdicao" class="ghost small" style="margin-left:10px;">Cancelar edição</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <h2>Importar Excel (.xlsx)</h2>
+      <p class="muted">
+        Colunas (linha 1): <b>numero_processo, data, hospital, assunto, destino, responsavel, status, criticidade</b><br>
+        Observação: <b>setor é fixo</b> e será aplicado automaticamente como <b>GTEC - Grupo Tecnico de Engenharia Clinica</b>.
+      </p>
+
+      <div class="row">
+        <div>
+          <label>Arquivo Excel</label>
+          <input type="file" id="fileXLSX" accept=".xlsx,.xls" />
+        </div>
+        <div>
+          <label>Planilha/Aba</label>
+          <input id="sheetName" placeholder="Vazio = 1ª aba" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnImportExcel">Importar Excel para Supabase</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
+        <div>
+          <h2>Registros</h2>
+          <p class="muted">Busca + exportação + ações.</p>
+        </div>
+        <div class="right">
+          <input id="q" class="search" placeholder="Buscar por processo, hospital, responsável..." />
+          <button id="btnExport" title="Exporta CSV">Exportar CSV</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="group">
+          <div class="w240">
+            <label>Exportar por responsável</label>
+            <select id="selResponsavelWA"></select>
+          </div>
+          <div class="w200">
+            <label>Telefone (opcional)</label>
+            <input id="waPhone" placeholder="55DDDNUMERO (sem +)" />
+            <div class="muted">Ex: 5591999999999</div>
+          </div>
+        </div>
+        <div class="group">
+          <button id="btnWhatsAppPreview" class="primary">Pré-visualizar</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div style="max-height:520px; overflow:auto; border-radius:14px; border:1px solid var(--line);">
+        <table>
+          <thead>
+            <tr>
+              <th>Processo</th>
+              <th>Setor</th>
+              <th>Data</th>
+              <th>Hospital</th>
+              <th>Assunto</th>
+              <th>Destino</th>
+              <th>Responsável</th>
+              <th>Status</th>
+              <th>Criticidade</th>
+              <th style="width:190px;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <p class="muted" style="margin-top:10px;" id="countInfo"></p>
+      <p class="muted" id="lastSync"></p>
+    </div>
+  </section>
+
+  <!-- ===================== DASH GERAL ===================== -->
+  <section id="page-dash-geral" class="hidden">
+    <div class="grid">
       <div class="card">
-        <h2>Registros</h2>
-        <p class="muted">Lista completa dos registros cadastrados.</p>
+        <h2>Dashboard Geral</h2>
+        <p class="muted">Resumo automático baseado nos registros do Supabase.</p>
 
-        <div class="top-actions">
-          <input type="text" id="searchInput" placeholder="Buscar por hospital, setor, responsável..." oninput="renderTable()" />
-          <button class="btn btn-gray" onclick="carregarDados()">Atualizar</button>
+        <div class="kpis" style="margin-top:10px;">
+          <div class="kpi"><div class="t">Total</div><div class="v" id="k_total">0</div></div>
+          <div class="kpi"><div class="t">Tramitados</div><div class="v" id="k_tram">0</div></div>
+          <div class="kpi"><div class="t">Em andamento</div><div class="v" id="k_and">0</div></div>
+          <div class="kpi"><div class="t">Em validação</div><div class="v" id="k_val">0</div></div>
+          <div class="kpi"><div class="t">Pendentes</div><div class="v" id="k_pend">0</div></div>
         </div>
+      </div>
 
-        <div style="overflow-x:auto;">
+      <div class="grid cols-2">
+        <div class="chart"><h3>Status</h3><canvas id="pieStatus"></canvas></div>
+        <div class="chart"><h3>Criticidade</h3><canvas id="pieCrit"></canvas></div>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="chart"><h3>Top Hospitais</h3><canvas id="barHospitais"></canvas></div>
+        <div class="chart"><h3>Top Responsáveis</h3><canvas id="barResponsaveis"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DASH HOSPITAL ===================== -->
+  <section id="page-dash-hospital" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
+          <div>
+            <h2>Dashboard por Hospital</h2>
+            <p class="muted">Filtre e veja resumo do hospital selecionado.</p>
+          </div>
+          <div style="min-width:280px;">
+            <label>Selecionar hospital</label>
+            <select id="selHospital"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="t">Total</div><div class="v" id="h_total">0</div></div>
+        <div class="kpi"><div class="t">Em andamento</div><div class="v" id="h_and">0</div></div>
+        <div class="kpi"><div class="t">Em validação</div><div class="v" id="h_val">0</div></div>
+        <div class="kpi"><div class="t">Pendentes</div><div class="v" id="h_pend">0</div></div>
+        <div class="kpi"><div class="t">Tramitados</div><div class="v" id="h_tram">0</div></div>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="chart"><h3>Criticidade</h3><canvas id="pieHCrit"></canvas></div>
+        <div class="chart"><h3>Status</h3><canvas id="pieHStatus"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Últimos registros do hospital</h2>
+        <p class="muted">Ordenado por data (mais recente primeiro).</p>
+        <div style="max-height:420px; overflow:auto; border-radius:14px; border:1px solid var(--line); margin-top:10px;">
           <table>
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Hospital</th>
-                <th>Setor</th>
-                <th>Responsável</th>
-                <th>Status</th>
-                <th>Criticidade</th>
-                <th>Protocolo</th>
-                <th>Data</th>
-                <th>Ações</th>
+                <th>Data</th><th>Processo</th><th>Setor</th><th>Assunto</th><th>Destino</th><th>Responsável</th><th>Status</th><th>Criticidade</th>
               </tr>
             </thead>
-            <tbody id="tbodyRegistros"></tbody>
+            <tbody id="tbodyHospital"></tbody>
           </table>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
+</main>
 
-    <!-- ===================== DASH GERAL ===================== -->
-    <section id="page-dash-geral" class="hidden">
-      <div class="grid">
-        <div class="card">
-          <h2>Dashboard Geral</h2>
-          <p class="muted">Visão geral dos processos do GTEC.</p>
-
-          <div class="kpis" style="margin-top:10px;">
-            <div class="kpi"><div class="t">Total</div><div class="v" id="k_total">0</div></div>
-            <div class="kpi"><div class="t">Tramitados</div><div class="v" id="k_tram">0</div></div>
-            <div class="kpi"><div class="t">Em andamento</div><div class="v" id="k_and">0</div></div>
-            <div class="kpi"><div class="t">Em validação</div><div class="v" id="k_val">0</div></div>
-            <div class="kpi"><div class="t">Pendentes</div><div class="v" id="k_pend">0</div></div>
-          </div>
-        </div>
-
-        <div class="grid cols-2">
-          <div class="card">
-            <h3>Distribuição por Status</h3>
-            <div style="height:280px;">
-              <canvas id="pieStatus"></canvas>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Distribuição por Criticidade</h3>
-            <div style="height:280px;">
-              <canvas id="pieCrit"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid cols-2">
-          <div class="card">
-            <h3>Top Hospitais</h3>
-            <div style="height:300px;">
-              <canvas id="barHospitais"></canvas>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Top Responsáveis</h3>
-            <div style="height:300px;">
-              <canvas id="barResponsaveis"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===================== DASH HOSPITAL ===================== -->
-    <section id="page-dash-hospital" class="hidden">
-      <div class="grid">
-        <div class="card">
-          <h2>Dashboard por Hospital</h2>
-          <p class="muted">Indicadores filtrados por hospital.</p>
-
-          <div style="margin:10px 0;">
-            <label for="selHospital">Hospital:</label>
-            <select id="selHospital" onchange="renderDashHospital()"></select>
-          </div>
-
-          <div class="kpis" style="margin-top:10px;">
-            <div class="kpi"><div class="t">Total</div><div class="v" id="kh_total">0</div></div>
-            <div class="kpi"><div class="t">Tramitados</div><div class="v" id="kh_tram">0</div></div>
-            <div class="kpi"><div class="t">Em andamento</div><div class="v" id="kh_and">0</div></div>
-            <div class="kpi"><div class="t">Em validação</div><div class="v" id="kh_val">0</div></div>
-            <div class="kpi"><div class="t">Pendentes</div><div class="v" id="kh_pend">0</div></div>
-          </div>
-        </div>
-
-        <div class="grid cols-2">
-          <div class="card">
-            <h3>Status por Hospital</h3>
-            <div style="height:280px;">
-              <canvas id="pieStatusHosp"></canvas>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Criticidade por Hospital</h3>
-            <div style="height:280px;">
-              <canvas id="pieCritHosp"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid cols-2">
-          <div class="card">
-            <h3>Top Responsáveis</h3>
-            <div style="height:300px;">
-              <canvas id="barRespHosp"></canvas>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Top Setores</h3>
-            <div style="height:300px;">
-              <canvas id="barSetorHosp"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===================== IMPORTAÇÃO ===================== -->
-    <section id="page-importacao" class="hidden">
-      <div class="card">
-        <h2>Importação de Cadastros</h2>
-        <p class="muted">Importe registros a partir de um arquivo CSV.</p>
-
-        <input type="file" id="fileImport" accept=".csv" />
-        <button class="btn" onclick="importarCSV()">Importar</button>
-
-        <p class="small muted" id="importStatus"></p>
-      </div>
-    </section>
-
-  </main>
+<!-- MODAL WhatsApp -->
+<div id="waModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Prévia da mensagem (WhatsApp)</h3>
+      <button class="ghost" id="btnCloseWaModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="muted" style="margin-top:0;">Edite antes de enviar ou copie para outro lugar.</p>
+      <label>Texto</label>
+      <textarea id="waPreviewText"></textarea>
+      <div class="muted" id="waCharCount" style="margin-top:6px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="btnCopyWa" class="ghost">Copiar</button>
+      <button id="btnOpenWa" class="primary">Abrir WhatsApp</button>
+    </div>
+  </div>
 </div>
 
 <script>
-  // ===================== SUPABASE =====================
-  const SUPABASE_URL = "COLE_SUA_URL_AQUI";
-  const SUPABASE_KEY = "COLE_SUA_CHAVE_PUBLICA_AQUI";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+/** SUPABASE */
+const SUPABASE_URL = "https://aykvdakgvugxuurioqum.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5a3ZkYWtndnVneHV1cmlvcXVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MTA1OTIsImV4cCI6MjA4NjE4NjU5Mn0.T3HPPYsmy3-Xi9aBmdkJEWyy6RKqWvSWLtYzKyfwFSg";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ===================== ESTADO GLOBAL =====================
-  let data = [];
+/** SETOR FIXO */
+const FIXED_SETOR = "GTEC - Grupo Tecnico de Engenharia Clinica.";
 
-  let pieStatus, pieCrit, barHosp, barResp;
-  let pieStatusHosp, pieCritHosp, barRespHosp, barSetorHosp;
+/** LISTA FIXA DE HOSPITAIS */
+const HOSPITAIS = [
+  "POLICLÍNICA DE TUCURUÍ",
+  "POLICLINICA METROPOLITANA DE BELÉM",
+  "HOSPITAL DE CLINICAS GASPAR VIANA",
+  "HOSPITAL GERAL DE IPIXUNA DO PARA",
+  "HOSPITAL GERAL DE TAILANDIA",
+  "HOSPITAL JEAN BITAR",
+  "HOSPITAL METROPOLITANO DE URGÊNCIA E EMERGÊNCIA",
+  "HOSPITAL ONCOLÓGICO INFANTIL OCTÁVIO LOBO",
+  "HOSPITAL OPHIR LOYOLA",
+  "HOSPITAL PÚBLICO ESTADUAL GALILEU",
+  "HOSPITAL PÚBLICO GERAL DOS CASTELO DOS SONHOS",
+  "HOSPITAL REGIONAL DE CAMETA",
+  "HOSPITAL REGIONAL DE CONCEICAO DO ARAGUAIA",
+  "HOSPITAL REGIONAL DE TUCURUI",
+  "HOSPITAL REGIONAL DO BAIXO AMAZONAS DO PA DR WALDEMAR PENNA",
+  "HOSPITAL SANTA ROSA",
+  "HOSPITAL REGIONAL DO SUDESTE DO PARA DR GERALDO VELOSO",
+  "HOSPITAL REGIONAL DR OLIMPIO CARDOSO DA SILVEIRA",
+  "HOSPITAL REGIONAL PÚBLICO DA TRANSAMAZÔNICA",
+  "HOSPITAL REGIONAL PÚBLICO DE CASTANHAL",
+  "HOSPITAL REGIONAL PÚBLICO DO ARAGUAIA",
+  "HOSPITAL REGIONAL PUBLICO DO LESTE DO PARA",
+  "HOSPITAL REGIONAL PUBLICO DO MARAJO",
+  "HOSPITAL REGIONAL PÚBLICO DO TAPAJOS ITAITUBA",
+  "HOSPITAL REGIONAL PÚBLICO DOS CAETES DR JORGE NETO DA COSTA",
+  "HOSPITAL REGIONAL PUBLICO DR ABELARDO SANTOS",
+  "HOSPITAL REGIONAL PÚBLICO MATERNO INFANTIL DE BARCARENA",
+  "Centro Integrado de Inclusão e Reabilitação - CIIR",
+  "HOSPITAL DA MULHER SENHORA DE NAZARÉ",
+  "HOSPITAL MATERNO INFANTIL DE ALTAMIRA",
+  "HOSPITAL MATERNO INFANTIL DE BREVES",
+  "HOSPITAL MATERNO INFANTIL DE MARABÁ",
+  "HOSPITAL MATERNO INFANTIL DE SANTARÉM",
+  "HOSPITAL MUNICIPAL DE RIO MARIA",
+  "HOSPITAL PRONTO SOCORRO",
+  "POLICLÍNICA DE ALTAMIRA",
+  "POLICLÍNICA DE BREVES",
+  "POLICLINICA DE CAPANEMA",
+  "POLICLÍNICA DE MARABÁ",
+  "POLICLÍNICA DE SANTARÉM"
+];
 
-  // ===================== UTILITÁRIOS =====================
-  const $ = id => document.getElementById(id);
+/** STATE */
+let data = [];
+let editingId = null;
+let pieStatus, pieCrit, barHosp, barResp;
+let pieHCrit, pieHStatus;
+let waMessageDraft = "";
 
-  function normalize(v){
-    return (v || "").toString().trim();
+/** HELPERS */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => (s ?? "").toString().replace(/[&<>"']/g, m => ({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+}[m]));
+function normalize(s){ return (s ?? "").toString().trim(); }
+function toast(msg){ alert(msg); }
+function setBusy(isBusy){
+  ["btnSalvar","btnLimpar","btnRecarregar","btnImportExcel","btnExport","btnWhatsAppPreview"].forEach(id=>{
+    const el = $(id); if(el) el.disabled = isBusy;
+  });
+}
+function fmtDate(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-");
+  return (d && m && y) ? `${d}/${m}/${y}` : iso;
+}
+function connBadge(ok){
+  const el = $("connStatus");
+  el.innerHTML = ok ? `Conexão: <b class="ok">OK</b>` : `Conexão: <b class="bad">ERRO</b>`;
+}
+function normalizeCrit(v){
+  const x = normalize(v);
+  if(!x) return "Média";
+  const low = x.toLowerCase();
+  if(low.includes("alta")) return "Alta";
+  if(low.includes("baixa")) return "Baixa";
+  return "Média";
+}
+function normalizeStatus(v){
+  const x = normalize(v);
+  if(!x) return "Em andamento";
+  const low = x.toLowerCase();
+  if(low.includes("val")) return "Em validação";
+  if(low.includes("pend")) return "Pendente";
+  if(low.includes("tram")) return "Tramitado";
+  if(low.includes("and")) return "Em andamento";
+  if(low.includes("conclu")) return "Tramitado";
+  return x;
+}
+
+/** THEME */
+const THEME_KEY = "cp_theme_v3";
+function applyTheme(theme){
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem(THEME_KEY, theme);
+}
+function initTheme(){
+  const saved = localStorage.getItem(THEME_KEY);
+  if(saved === "light" || saved === "dark") applyTheme(saved);
+}
+function toggleTheme(){
+  const current = document.documentElement.getAttribute("data-theme") || "dark";
+  applyTheme(current === "dark" ? "light" : "dark");
+}
+
+/** INIT selects */
+function initFixedFields(){
+  $("f_setor").value = FIXED_SETOR;
+
+  const selHosp = $("f_hospital");
+  selHosp.innerHTML = "";
+  const ph = document.createElement("option");
+  ph.value = "";
+  ph.textContent = "Selecione um hospital...";
+  selHosp.appendChild(ph);
+
+  for(const h of HOSPITAIS){
+    const opt = document.createElement("option");
+    opt.value = h;
+    opt.textContent = h;
+    selHosp.appendChild(opt);
   }
+}
 
-  function destroyIf(chart){
-    if(chart){ chart.destroy(); }
-    return null;
+/** FORM */
+function getForm(){
+  return {
+    numero_processo: normalize($("f_numero").value),
+    setor: FIXED_SETOR,
+    data: $("f_data").value || "",
+    hospital: $("f_hospital").value || "",
+    assunto: normalize($("f_assunto").value),
+    destino: normalize($("f_destino").value),
+    responsavel: normalize($("f_responsavel").value),
+    status: $("f_status").value || "Em andamento",
+    criticidade: $("f_criticidade").value || "Média"
+  };
+}
+function setForm(r){
+  $("f_numero").value = r?.numero_processo || "";
+  $("f_setor").value = FIXED_SETOR;
+  $("f_data").value = r?.data || "";
+  $("f_hospital").value = r?.hospital || "";
+  $("f_assunto").value = r?.assunto || "";
+  $("f_destino").value = r?.destino || "";
+  $("f_responsavel").value = r?.responsavel || "";
+  $("f_status").value = r?.status || "Em andamento";
+  $("f_criticidade").value = r?.criticidade || "Média";
+}
+function clearForm(){ setForm(null); }
+function validate(r){
+  if(!r.numero_processo) return "Informe o número do processo.";
+  if(!r.data) return "Informe a data.";
+  if(!r.hospital) return "Selecione o hospital.";
+  if(!r.assunto) return "Informe o assunto.";
+  if(!r.destino) return "Informe o destino.";
+  if(!r.responsavel) return "Informe o responsável.";
+  return null;
+}
+
+/** SUPABASE */
+async function testConnection(){
+  try{
+    const { error } = await sb.from("processos").select("id").limit(1);
+    connBadge(!error);
+    if(error) console.error(error);
+  }catch(e){
+    connBadge(false);
+    console.error(e);
   }
-
-  function showPage(id){
-    document.querySelectorAll("main > section").forEach(sec => sec.classList.add("hidden"));
-    $(id).classList.remove("hidden");
-    if(id === "page-dash-geral") renderDashboards();
-    if(id === "page-dash-hospital") renderDashHospital();
-  }
-
-  // ===================== CARREGAMENTO =====================
-  async function carregarDados(){
-    const { data: rows, error } = await supabase
-      .from("registros")
+}
+async function loadFromSupabase(){
+  setBusy(true);
+  try{
+    const { data: rows, error } = await sb
+      .from("processos")
       .select("*")
-      .order("id", { ascending: false });
+      .order("created_at", { ascending: false });
 
-    if(error){
-      alert("Erro ao carregar dados: " + error.message);
-      return;
-    }
+    if(error) throw error;
 
-    data = rows || [];
-    renderTable();
-    renderDashboards();
+    data = (rows || []).map(r => ({
+      ...r,
+      setor: FIXED_SETOR,
+      status: normalizeStatus(r.status),
+      criticidade: r.criticidade ? normalizeCrit(r.criticidade) : "Média"
+    }));
+
+    $("lastSync").textContent = `Última atualização: ${new Date().toLocaleString()}`;
+    renderAll();
+  }catch(e){
+    console.error(e);
+    toast("Erro ao carregar do Supabase (RLS/Policies).");
+  }finally{
+    setBusy(false);
   }
+}
+async function insertRecord(record){
+  const { data: row, error } = await sb.from("processos").insert({ ...record }).select("*").single();
+  if(error) throw error;
+  return row;
+}
+async function updateRecord(id, record){
+  const payload = { ...record, updated_at: new Date().toISOString() };
+  const { data: row, error } = await sb.from("processos").update(payload).eq("id", id).select("*").single();
+  if(error) throw error;
+  return row;
+}
+async function deleteRecord(id){
+  const { error } = await sb.from("processos").delete().eq("id", id);
+  if(error) throw error;
+}
 
-  // ===================== CADASTRO =====================
-  $("formCadastro").addEventListener("submit", async (e) => {
-    e.preventDefault();
+/** TABLE */
+function renderTable(){
+  const q = normalize($("q").value).toLowerCase();
+  const tbody = $("tbody");
 
-    const registro = {
-      hospital: normalize($("f_hospital").value),
-      setor: normalize($("f_setor").value),
-      responsavel: normalize($("f_responsavel").value),
-      protocolo: normalize($("f_protocolo").value),
-      status: normalize($("f_status").value),
-      criticidade: normalize($("f_criticidade").value),
-      descricao: normalize($("f_descricao").value),
-      data: $("f_data").value || null,
-      whatsapp: normalize($("f_whatsapp").value),
-      criado_em: new Date().toISOString()
-    };
-
-    const { error } = await supabase.from("registros").insert([registro]);
-
-    if(error){
-      alert("Erro ao salvar: " + error.message);
-      return;
-    }
-
-    e.target.reset();
-    alert("Registro salvo com sucesso!");
-    carregarDados();
-    showPage("page-registros");
+  const filtered = data.filter(r => {
+    if(!q) return true;
+    const blob = [
+      r.numero_processo, r.setor, r.data, r.hospital,
+      r.assunto, r.destino, r.responsavel, r.status, r.criticidade
+    ].join(" ").toLowerCase();
+    return blob.includes(q);
   });
 
-  // ===================== WHATSAPP =====================
-  function enviarWhatsapp(){
-    const numero = normalize($("f_whatsapp").value);
-    if(!numero){
-      alert("Informe o número de WhatsApp.");
-      return;
-    }
-
-    const mensagem = encodeURIComponent(
-      `Olá! Seguem os dados do registro:\n\n` +
-      `Hospital: ${$("f_hospital").value}\n` +
-      `Setor: ${$("f_setor").value}\n` +
-      `Responsável: ${$("f_responsavel").value}\n` +
-      `Status: ${$("f_status").value}\n` +
-      `Criticidade: ${$("f_criticidade").value}\n` +
-      `Protocolo: ${$("f_protocolo").value}\n` +
-      `Descrição: ${$("f_descricao").value}`
-    );
-
-    window.open(`https://wa.me/${numero}?text=${mensagem}`, "_blank");
-  }
-
-  // ===================== TABELA DE REGISTROS =====================
-  function renderTable(){
-    const tbody = $("tbodyRegistros");
-    tbody.innerHTML = "";
-
-    const termo = normalize($("searchInput")?.value || "").toLowerCase();
-
-    const filtered = data.filter(r => {
-      const concat = [
-        r.hospital,
-        r.setor,
-        r.responsavel,
-        r.status,
-        r.criticidade,
-        r.protocolo
-      ].join(" ").toLowerCase();
-      return concat.includes(termo);
-    });
-
-    for(const r of filtered){
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.id ?? ""}</td>
-        <td>${r.hospital ?? ""}</td>
-        <td>${r.setor ?? ""}</td>
-        <td>${r.responsavel ?? ""}</td>
-        <td>${r.status ?? ""}</td>
-        <td>${r.criticidade ?? ""}</td>
-        <td>${r.protocolo ?? ""}</td>
-        <td>${r.data ?? ""}</td>
+  tbody.innerHTML = filtered.map(r => {
+    const canEdit = (r.status === "Em andamento");
+    return `
+      <tr>
+        <td><span class="chip">${esc(r.numero_processo)}</span></td>
+        <td>${esc(FIXED_SETOR)}</td>
+        <td>${esc(fmtDate(r.data))}</td>
+        <td>${esc(r.hospital)}</td>
+        <td>${esc(r.assunto)}</td>
+        <td>${esc(r.destino)}</td>
+        <td>${esc(r.responsavel)}</td>
+        <td>${esc(r.status)}</td>
+        <td>${esc(r.criticidade || "Média")}</td>
         <td>
-          <button class="btn btn-danger small" onclick="deletarRegistro(${r.id})">Excluir</button>
+          ${canEdit ? `<button class="ghost small" onclick="onEdit('${r.id}')">Editar</button>` : ``}
+          <button class="danger small" onclick="onDelete('${r.id}')">Excluir</button>
         </td>
-      `;
-      tbody.appendChild(tr);
+      </tr>
+    `;
+  }).join("");
+
+  $("countInfo").textContent = `Mostrando ${filtered.length} de ${data.length} registros.`;
+}
+
+window.onEdit = (id) => {
+  const r = data.find(x => x.id === id);
+  if(!r) return;
+  if(r.status !== "Em andamento"){
+    toast("Só é permitido editar quando o status estiver 'Em andamento'.");
+    return;
+  }
+  editingId = id;
+  setForm(r);
+  $("editBanner").classList.remove("hidden");
+  goPage("cadastro");
+};
+
+window.onDelete = async (id) => {
+  const r = data.find(x => x.id === id);
+  if(!r) return;
+  if(!confirm(`Excluir o processo "${r.numero_processo}"?`)) return;
+
+  setBusy(true);
+  try{
+    await deleteRecord(id);
+    data = data.filter(x => x.id !== id);
+    if(editingId === id){
+      editingId = null;
+      $("editBanner").classList.add("hidden");
+      clearForm();
+    }
+    renderAll();
+  }catch(e){
+    console.error(e);
+    toast("Erro ao excluir (RLS/Policies).");
+  }finally{
+    setBusy(false);
+  }
+};
+
+async function onSave(){
+  const r = getForm();
+  const err = validate(r);
+  if(err){ toast(err); return; }
+
+  setBusy(true);
+  try{
+    if(editingId){
+      const current = data.find(x => x.id === editingId);
+      if(current && current.status !== "Em andamento"){
+        toast("Não foi possível salvar: o status não está mais 'Em andamento'.");
+        return;
+      }
+      const updated = await updateRecord(editingId, r);
+      data = data.map(x => x.id === editingId ? { ...updated, setor: FIXED_SETOR, criticidade: normalizeCrit(updated.criticidade||"Média"), status: normalizeStatus(updated.status)} : x);
+      editingId = null;
+      $("editBanner").classList.add("hidden");
+    }else{
+      const inserted = await insertRecord(r);
+      data.unshift({ ...inserted, setor: FIXED_SETOR, criticidade: normalizeCrit(inserted.criticidade||"Média"), status: normalizeStatus(inserted.status) });
+    }
+    clearForm();
+    renderAll();
+    toast("Salvo com sucesso!");
+  }catch(e){
+    console.error(e);
+    toast("Erro ao salvar no Supabase (RLS/Policies).");
+  }finally{
+    setBusy(false);
+  }
+}
+
+function onCancelEdit(){
+  editingId = null;
+  $("editBanner").classList.add("hidden");
+  clearForm();
+}
+function onClear(){
+  onCancelEdit();
+  clearForm();
+}
+
+/** EXPORT CSV */
+function exportCSV(){
+  if(!data.length){ toast("Sem dados para exportar."); return; }
+  const headers = ["numero_processo","setor","data","hospital","assunto","destino","responsavel","status","criticidade"];
+  const lines = [
+    headers.join(","),
+    ...data.map(r => headers.map(h => {
+      const v = (r[h] ?? (h==="setor"?FIXED_SETOR:"")).toString().replaceAll('"','""');
+      return `"${v}"`;
+    }).join(","))
+  ];
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "processos.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** IMPORT EXCEL */
+function normalizeHeader(h){
+  return normalize(h).toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
+}
+function excelDateToISO(v){
+  if(typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) return v.trim();
+  if(v instanceof Date && !isNaN(v.getTime())){
+    const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,"0"), d=String(v.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+  if(typeof v === "number"){
+    const d = XLSX.SSF.parse_date_code(v);
+    if(d){
+      const y=d.y, m=String(d.m).padStart(2,"0"), day=String(d.d).padStart(2,"0");
+      return `${y}-${m}-${day}`;
     }
   }
-
-  async function deletarRegistro(id){
-    if(!confirm("Tem certeza que deseja excluir este registro?")) return;
-
-    const { error } = await supabase.from("registros").delete().eq("id", id);
-    if(error){
-      alert("Erro ao excluir: " + error.message);
-      return;
-    }
-
-    carregarDados();
+  if(typeof v === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(v.trim())){
+    const [dd,mm,yyyy]=v.trim().split("/");
+    return `${yyyy}-${mm}-${dd}`;
   }
+  return "";
+}
+async function importExcel(){
+  const f = $("fileXLSX").files[0];
+  if(!f) return toast("Selecione um arquivo Excel (.xlsx).");
 
-  // ===================== IMPORTAÇÃO CSV =====================
-  async function importarCSV(){
-    const fileInput = $("fileImport");
-    const statusEl = $("importStatus");
-    if(!fileInput.files.length){
-      alert("Selecione um arquivo CSV.");
-      return;
-    }
+  setBusy(true);
+  try{
+    const buf = await f.arrayBuffer();
+    const wb = XLSX.read(buf, { type:"array" });
 
-    const file = fileInput.files[0];
-    const text = await file.text();
-    const lines = text.split("\n").filter(l => l.trim());
+    const preferred = normalize($("sheetName").value);
+    const sheet = preferred && wb.Sheets[preferred] ? wb.Sheets[preferred] : wb.Sheets[wb.SheetNames[0]];
+    if(!sheet) throw new Error("Aba não encontrada.");
 
-    if(lines.length < 2){
-      alert("Arquivo CSV vazio ou inválido.");
-      return;
-    }
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    if(!rows.length) return toast("Planilha vazia.");
 
-    const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-    const registros = [];
-
-    for(let i = 1; i < lines.length; i++){
-      const values = lines[i].split(",").map(v => v.trim());
-      const obj = {};
-      headers.forEach((h, idx) => obj[h] = values[idx] || null);
-      obj.criado_em = new Date().toISOString();
-      registros.push(obj);
-    }
-
-    const { error } = await supabase.from("registros").insert(registros);
-    if(error){
-      alert("Erro ao importar: " + error.message);
-      return;
-    }
-
-    statusEl.textContent = `Importação concluída: ${registros.length} registros inseridos.`;
-    carregarDados();
-    showPage("page-registros");
-  }
-
-  // ===================== KPIs =====================
-  function setKpis(){
-    $("k_total").textContent = data.length;
-    $("k_tram").textContent = data.filter(r => normalize(r.status).toLowerCase() === "tramitado").length;
-    $("k_and").textContent = data.filter(r => normalize(r.status).toLowerCase() === "em andamento").length;
-    $("k_val").textContent = data.filter(r => normalize(r.status).toLowerCase() === "em validação").length;
-    $("k_pend").textContent = data.filter(r => normalize(r.status).toLowerCase() === "pendente").length;
-  }
-
-  function setHospitalKpis(filtered){
-    $("kh_total").textContent = filtered.length;
-    $("kh_tram").textContent = filtered.filter(r => normalize(r.status).toLowerCase() === "tramitado").length;
-    $("kh_and").textContent = filtered.filter(r => normalize(r.status).toLowerCase() === "em andamento").length;
-    $("kh_val").textContent = filtered.filter(r => normalize(r.status).toLowerCase() === "em validação").length;
-    $("kh_pend").textContent = filtered.filter(r => normalize(r.status).toLowerCase() === "pendente").length;
-  }
-
-  // ===================== DASHBOARDS =====================
-  function mapCounts(arr, field){
-    const map = {};
-    arr.forEach(r => {
-      const key = normalize(r[field]) || "Não informado";
-      map[key] = (map[key] || 0) + 1;
+    const normalizedRows = rows.map(r=>{
+      const out = {};
+      for(const k of Object.keys(r)) out[normalizeHeader(k)] = r[k];
+      return out;
     });
-    const labels = Object.keys(map);
-    const values = Object.values(map);
-    return { labels, values };
-  }
 
-  function renderDashboards(){
-    setKpis();
+    const payload = normalizedRows.map(r => ({
+      numero_processo: normalize(r.numero_processo),
+      setor: FIXED_SETOR,
+      data: excelDateToISO(r.data),
+      hospital: normalize(r.hospital),
+      assunto: normalize(r.assunto),
+      destino: normalize(r.destino),
+      responsavel: normalize(r.responsavel),
+      status: normalizeStatus(r.status),
+      criticidade: normalizeCrit(r.criticidade)
+    })).filter(r => r.numero_processo);
 
-    const st = mapCounts(data, "status");
-    const cr = mapCounts(data, "criticidade");
-    const h  = mapCounts(data, "hospital");
-    const rp = mapCounts(data, "responsavel");
+    if(!payload.length) return toast("Nenhuma linha válida. Verifique colunas e dados.");
 
-    pieStatus = destroyIf(pieStatus);
-    pieCrit   = destroyIf(pieCrit);
-    barHosp   = destroyIf(barHosp);
-    barResp   = destroyIf(barResp);
+    const invalid = payload.find(p => !p.data || !p.hospital || !p.assunto || !p.destino || !p.responsavel);
+    if(invalid){
+      return toast("Há linhas faltando campos obrigatórios (data/hospital/assunto/destino/responsavel).");
+    }
 
-    const baseOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: "bottom" },
-        tooltip: { enabled: true },
-        title: { display: false }
+    const badHosp = payload.find(p => !HOSPITAIS.includes(p.hospital));
+    if(badHosp){
+      return toast(`Hospital inválido na planilha: "${badHosp.hospital}". Use exatamente um nome da lista.`);
+    }
+
+    const chunkSize = 300;
+    let insertedTotal = 0;
+
+    for(let i=0; i<payload.length; i+=chunkSize){
+      const chunk = payload.slice(i, i+chunkSize);
+      const { data: inserted, error } = await sb.from("processos").insert(chunk).select("*");
+      if(error) throw error;
+
+      insertedTotal += (inserted?.length || 0);
+      if(inserted?.length){
+        data = [...inserted.map(x => ({
+          ...x,
+          setor: FIXED_SETOR,
+          status: normalizeStatus(x.status),
+          criticidade: normalizeCrit(x.criticidade || "Média")
+        })), ...data];
       }
-    };
-
-    if($("pieStatus")){
-      pieStatus = new Chart($("pieStatus"), {
-        type:"pie",
-        data:{ labels: st.labels, datasets:[{ data: st.values }] },
-        options: baseOptions
-      });
-    }
-    if($("pieCrit")){
-      pieCrit = new Chart($("pieCrit"), {
-        type:"pie",
-        data:{ labels: cr.labels, datasets:[{ data: cr.values }] },
-        options: baseOptions
-      });
-    }
-    if($("barHospitais")){
-      const top = { labels: h.labels.slice(0,10), values: h.values.slice(0,10) };
-      barHosp = new Chart($("barHospitais"), {
-        type:"bar",
-        data:{ labels: top.labels, datasets:[{ data: top.values, label: "Processos" }] },
-        options: baseOptions
-      });
-    }
-    if($("barResponsaveis")){
-      const top = { labels: rp.labels.slice(0,10), values: rp.values.slice(0,10) };
-      barResp = new Chart($("barResponsaveis"), {
-        type:"bar",
-        data:{ labels: top.labels, datasets:[{ data: top.values, label: "Processos" }] },
-        options: baseOptions
-      });
     }
 
-    const sel = $("selHospital");
-    const hospitals = [...new Set(data.map(r => normalize(r.hospital)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-    sel.innerHTML = "";
-    const allOpt = document.createElement("option");
-    allOpt.value = "__ALL__";
-    allOpt.textContent = hospitals.length ? "Todos" : "Sem hospitais ainda";
-    sel.appendChild(allOpt);
-    for(const name of hospitals){
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      sel.appendChild(opt);
-    }
-
-    renderDashHospital();
+    renderAll();
+    toast(`Importação concluída: ${insertedTotal} registros inseridos no Supabase.`);
+  }catch(e){
+    console.error(e);
+    toast("Erro ao importar Excel (RLS/Policies).");
+  }finally{
+    setBusy(false);
   }
+}
 
-  function renderDashHospital(){
-    const sel = $("selHospital");
-    const hospital = sel.value;
-    const filtered = hospital==="__ALL__" ? data : data.filter(r => normalize(r.hospital)===hospital);
+/** DASH */
+function mapCounts(list, field){
+  const m = new Map();
+  for(const r of list){
+    const k = normalize(r[field]) || "(vazio)";
+    m.set(k, (m.get(k)||0)+1);
+  }
+  const entries = [...m.entries()].sort((a,b)=>b[1]-a[1]);
+  return { labels: entries.map(e=>e[0]), values: entries.map(e=>e[1]) };
+}
+function destroyIf(chart){ if(chart) chart.destroy(); return null; }
+function setKpis(){
+  $("k_total").textContent = data.length;
+  $("k_tram").textContent = data.filter(r => r.status === "Tramitado").length;
+  $("k_and").textContent  = data.filter(r => r.status === "Em andamento").length;
+  $("k_val").textContent  = data.filter(r => r.status === "Em validação").length;
+  $("k_pend").textContent = data.filter(r => r.status === "Pendente").length;
+}
 
-    setHospitalKpis(filtered);
+function renderDashboards(){
+  setKpis();
 
-    const st = mapCounts(filtered, "status");
-    const cr = mapCounts(filtered, "criticidade");
-    const rp = mapCounts(filtered, "responsavel");
-    const se = mapCounts(filtered, "setor");
+  const st = mapCounts(data, "status");
+  const cr = mapCounts(data, "criticidade");
+  const h  = mapCounts(data, "hospital");
+  const rp = mapCounts(data, "responsavel");
 
-    pieStatusHosp = destroyIf(pieStatusHosp);
-    pieCritHosp   = destroyIf(pieCritHosp);
-    barRespHosp   = destroyIf(barRespHosp);
-    barSetorHosp  = destroyIf(barSetorHosp);
+  pieStatus = destroyIf(pieStatus);
+  pieCrit   = destroyIf(pieCrit);
+  barHosp   = destroyIf(barHosp);
+  barResp   = destroyIf(barResp);
 
-    const baseOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: "bottom" },
-        tooltip: { enabled: true },
-        title: { display: false }
+  const baseOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, position: "bottom" },
+      tooltip: { enabled: true },
+      title: { display: false }
+    }
+  };
+
+  if($("pieStatus")){
+    pieStatus = new Chart($("pieStatus"), {
+      type:"pie",
+      data:{ labels: st.labels, datasets:[{ label:"Status", data: st.values }] },
+      options: baseOptions
+    });
+  }
+  if($("pieCrit")){
+    pieCrit = new Chart($("pieCrit"), {
+      type:"pie",
+      data:{ labels: cr.labels, datasets:[{ label:"Criticidade", data: cr.values }] },
+      options: baseOptions
+    });
+  }
+  if($("barHospitais")){
+    const top = { labels: h.labels.slice(0,10), values: h.values.slice(0,10) };
+    barHosp = new Chart($("barHospitais"), {
+      type:"bar",
+      data:{ labels: top.labels, datasets:[{ label:"Hospitais", data: top.values }] },
+      options: {
+        ...baseOptions,
+        scales: {
+          x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 } },
+          y: { beginAtZero: true }
+        }
       }
-    };
-
-    if($("pieStatusHosp")){
-      pieStatusHosp = new Chart($("pieStatusHosp"), {
-        type:"pie",
-        data:{ labels: st.labels, datasets:[{ data: st.values }] },
-        options: baseOptions
-      });
-    }
-    if($("pieCritHosp")){
-      pieCritHosp = new Chart($("pieCritHosp"), {
-        type:"pie",
-        data:{ labels: cr.labels, datasets:[{ data: cr.values }] },
-        options: baseOptions
-      });
-    }
-    if($("barRespHosp")){
-      const top = { labels: rp.labels.slice(0,10), values: rp.values.slice(0,10) };
-      barRespHosp = new Chart($("barRespHosp"), {
-        type:"bar",
-        data:{ labels: top.labels, datasets:[{ data: top.values, label: "Processos" }] },
-        options: baseOptions
-      });
-    }
-    if($("barSetorHosp")){
-      const top = { labels: se.labels.slice(0,10), values: se.values.slice(0,10) };
-      barSetorHosp = new Chart($("barSetorHosp"), {
-        type:"bar",
-        data:{ labels: top.labels, datasets:[{ data: top.values, label: "Processos" }] },
-        options: baseOptions
-      });
-    }
+    });
+  }
+  if($("barResponsaveis")){
+    const top = { labels: rp.labels.slice(0,10), values: rp.values.slice(0,10) };
+    barResp = new Chart($("barResponsaveis"), {
+      type:"bar",
+      data:{ labels: top.labels, datasets:[{ label:"Responsáveis", data: top.values }] },
+      options: {
+        ...baseOptions,
+        scales: {
+          x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 } },
+          y: { beginAtZero: true }
+        }
+      }
+    });
   }
 
-  // ===================== CHAT GEMINI =====================
-  function openGemini(){
-    const win = window.open("https://gemini.google.com/app?hl=pt-BR", "gemini", "width=420,height=650,resizable=yes,scrollbars=yes");
-    if(win){ win.focus(); }
+  const sel = $("selHospital");
+  const hospitals = [...new Set(data.map(r => normalize(r.hospital)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML = "";
+  const allOpt = document.createElement("option");
+  allOpt.value = "__ALL__";
+  allOpt.textContent = hospitals.length ? "Todos" : "Sem hospitais ainda";
+  sel.appendChild(allOpt);
+  for(const name of hospitals){
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
   }
 
-  // ===================== INICIALIZAÇÃO =====================
-  showPage("page-cadastro");
-  carregarDados();
+  renderDashHospital();
+}
+
+function renderDashHospital(){
+  const sel = $("selHospital").value;
+  let list = data;
+  if(sel && sel !== "__ALL__") list = data.filter(r => normalize(r.hospital) === sel);
+
+  $("h_total").textContent = list.length;
+  $("h_and").textContent  = list.filter(r => r.status === "Em andamento").length;
+  $("h_val").textContent  = list.filter(r => r.status === "Em validação").length;
+  $("h_pend").textContent = list.filter(r => r.status === "Pendente").length;
+  $("h_tram").textContent = list.filter(r => r.status === "Tramitado").length;
+
+  const crit = mapCounts(list, "criticidade");
+  const st   = mapCounts(list, "status");
+
+  pieHCrit = destroyIf(pieHCrit);
+  pieHStatus = destroyIf(pieHStatus);
+
+  const baseOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, position: "bottom" },
+      tooltip: { enabled: true },
+      title: { display: false }
+    }
+  };
+
+  if($("pieHCrit")){
+    pieHCrit = new Chart($("pieHCrit"), {
+      type:"pie",
+      data:{ labels: crit.labels, datasets:[{ label:"Criticidade", data: crit.values }] },
+      options: baseOptions
+    });
+  }
+  if($("pieHStatus")){
+    pieHStatus = new Chart($("pieHStatus"), {
+      type:"pie",
+      data:{ labels: st.labels, datasets:[{ label:"Status", data: st.values }] },
+      options: baseOptions
+    });
+  }
+
+  const sorted = [...list].sort((a,b)=>{
+    if(!a.data && !b.data) return 0;
+    if(!a.data) return 1;
+    if(!b.data) return -1;
+    return (b.data||"").localeCompare(a.data||"");
+  }).slice(0, 50);
+
+  $("tbodyHospital").innerHTML = sorted.map(r => `
+    <tr>
+      <td>${esc(fmtDate(r.data))}</td>
+      <td><span class="chip">${esc(r.numero_processo)}</span></td>
+      <td>${esc(FIXED_SETOR)}</td>
+      <td>${esc(r.assunto)}</td>
+      <td>${esc(r.destino)}</td>
+      <td>${esc(r.responsavel)}</td>
+      <td>${esc(r.status)}</td>
+      <td>${esc(r.criticidade || "Média")}</td>
+    </tr>
+  `).join("");
+}
+
+/** WhatsApp */
+function refreshResponsavelSelect(){
+  const sel = $("selResponsavelWA");
+  const responsaveis = [...new Set(data.map(r => normalize(r.responsavel)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML = "";
+  const opt0 = document.createElement("option");
+  opt0.value = "__ALL__";
+  opt0.textContent = responsaveis.length ? "Todos os responsáveis" : "Sem dados";
+  sel.appendChild(opt0);
+  for(const name of responsaveis){
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  }
+}
+function buildWhatsAppMessage(responsavel){
+  const list = responsavel === "__ALL__" ? data : data.filter(r => normalize(r.responsavel) === responsavel);
+  if(!list.length) return "";
+
+  const title = responsavel === "__ALL__"
+    ? `📌 *Relatório de Processos (GTEC)*`
+    : `📌 *Relatório de Processos (GTEC) - ${responsavel}*`;
+
+  const critOrder = (c) => c === "Alta" ? 3 : (c === "Média" ? 2 : 1);
+  const sorted = [...list].sort((a,b)=>{
+    const dc = critOrder(normalizeCrit(b.criticidade)) - critOrder(normalizeCrit(a.criticidade));
+    if(dc !== 0) return dc;
+    return (b.data||"").localeCompare(a.data||"");
+  });
+
+  const lines = sorted.slice(0, 80).map(r => {
+    const crit = normalizeCrit(r.criticidade);
+    return `• *${r.numero_processo}* | ${fmtDate(r.data)} | ${r.hospital}\n  Status: ${r.status} | Criticidade: *${crit}*\n  Assunto: ${r.assunto}\n  Destino: ${r.destino}`;
+  });
+
+  if(sorted.length > 80) lines.push(`\n(Mostrando 80 de ${sorted.length}. Exporte CSV para lista completa.)`);
+
+  return `${title}\n\n${lines.join("\n\n")}`;
+}
+function openWaModal(message){
+  waMessageDraft = message || "";
+  $("waPreviewText").value = waMessageDraft;
+  $("waCharCount").textContent = `Caracteres: ${waMessageDraft.length}`;
+  $("waModal").classList.remove("hidden");
+}
+function closeWaModal(){ $("waModal").classList.add("hidden"); }
+async function copyWaText(){
+  const txt = $("waPreviewText").value || "";
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast("Texto copiado!");
+  }catch{
+    $("waPreviewText").select();
+    document.execCommand("copy");
+    toast("Texto copiado!");
+  }
+}
+function openWhatsAppFromModal(){
+  const msg = $("waPreviewText").value || "";
+  if(!msg.trim()) return toast("Mensagem vazia.");
+
+  const phone = normalize($("waPhone").value).replace(/\D/g,"");
+  const encoded = encodeURIComponent(msg);
+  const url = phone ? `https://wa.me/${phone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+function previewWhatsApp(){
+  const resp = $("selResponsavelWA").value;
+  const msg = buildWhatsAppMessage(resp);
+  if(!msg) return toast("Sem registros para esse responsável.");
+  openWaModal(msg);
+}
+
+/** NAV */
+function goPage(page){
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.page === page));
+  $("page-cadastro").classList.toggle("hidden", page !== "cadastro");
+  $("page-dash-geral").classList.toggle("hidden", page !== "dash-geral");
+  $("page-dash-hospital").classList.toggle("hidden", page !== "dash-hospital");
+  if(page !== "cadastro") renderDashboards();
+}
+document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => goPage(btn.dataset.page)));
+
+function renderAll(){
+  renderTable();
+  refreshResponsavelSelect();
+  renderDashboards();
+}
+
+/** EVENTS */
+$("btnTheme").addEventListener("click", toggleTheme);
+$("btnSalvar").addEventListener("click", onSave);
+$("btnLimpar").addEventListener("click", onClear);
+$("btnRecarregar").addEventListener("click", loadFromSupabase);
+$("btnCancelarEdicao").addEventListener("click", onCancelEdit);
+$("q").addEventListener("input", renderTable);
+$("btnExport").addEventListener("click", exportCSV);
+$("selHospital").addEventListener("change", renderDashHospital);
+$("btnImportExcel").addEventListener("click", importExcel);
+$("btnWhatsAppPreview").addEventListener("click", previewWhatsApp);
+
+$("btnCloseWaModal").addEventListener("click", closeWaModal);
+$("waModal").addEventListener("click", (e)=>{ if(e.target === $("waModal")) closeWaModal(); });
+$("waPreviewText").addEventListener("input", ()=>$("waCharCount").textContent = `Caracteres: ${($("waPreviewText").value||"").length}`);
+$("btnCopyWa").addEventListener("click", copyWaText);
+$("btnOpenWa").addEventListener("click", openWhatsAppFromModal);
+
+/** CHAT GEMINI */
+$("btnGemini").addEventListener("click", () => {
+  window.open(
+    "https://gemini.google.com/app?hl=pt-BR",
+    "chat-gemini",
+    "width=420,height=640,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes"
+  );
+});
+
+/** START */
+(async function init(){
+  initTheme();
+  initFixedFields();
+  clearForm();
+  await testConnection();
+  await loadFromSupabase();
+})();
 </script>
-
 </body>
 </html>
