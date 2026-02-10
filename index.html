@@ -254,6 +254,7 @@
 
       <nav>
         <button class="tab active" data-page="cadastro">Cadastro</button>
+        <button class="tab" data-page="registro">Registro</button>
         <button class="tab" data-page="dash-geral">Dashboard Geral</button>
         <button class="tab" data-page="dash-hospital">Dashboard por Hospital</button>
       </nav>
@@ -262,8 +263,8 @@
 </header>
 
 <main class="wrap">
-  <!-- ===================== CADASTRO ===================== -->
-  <section id="page-cadastro" class="grid cols-2">
+  <!-- ===================== REGISTRO ===================== -->
+  <section id="page-registro" class="hidden grid cols-2">
     <div class="card">
       <h2>Novo registro</h2>
       <p class="muted">Setor fixo em <b>GTEC - Grupo Tecnico de Engenharia Clinica</b>.</p>
@@ -343,31 +344,11 @@
         Editando um registro (somente quando Status = <b>Em andamento</b>). Clique em <b>Salvar</b> para atualizar.
         <button id="btnCancelarEdicao" class="ghost small" style="margin-left:10px;">Cancelar edição</button>
       </div>
-
-      <div class="divider"></div>
-
-      <h2>Importar Excel (.xlsx)</h2>
-      <p class="muted">
-        Colunas (linha 1): <b>numero_processo, data, hospital, assunto, destino, responsavel, status, criticidade</b><br>
-        Observação: <b>setor é fixo</b> e será aplicado automaticamente como <b>GTEC - Grupo Tecnico de Engenharia Clinica</b>.
-      </p>
-
-      <div class="row">
-        <div>
-          <label>Arquivo Excel</label>
-          <input type="file" id="fileXLSX" accept=".xlsx,.xls" />
-        </div>
-        <div>
-          <label>Planilha/Aba</label>
-          <input id="sheetName" placeholder="Vazio = 1ª aba" />
-        </div>
-      </div>
-
-      <div class="actions">
-        <button id="btnImportExcel">Importar Excel para Supabase</button>
-      </div>
     </div>
+  </section>
 
+  <!-- ===================== CADASTRO ===================== -->
+  <section id="page-cadastro" class="grid cols-2">
     <div class="card">
       <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
         <div>
@@ -421,6 +402,29 @@
 
       <p class="muted" style="margin-top:10px;" id="countInfo"></p>
       <p class="muted" id="lastSync"></p>
+    </div>
+
+    <div class="card">
+      <h2>Importar Excel (.xlsx)</h2>
+      <p class="muted">
+        Colunas (linha 1): <b>numero_processo, data, hospital, assunto, destino, responsavel, status, criticidade</b><br>
+        Observação: <b>setor é fixo</b> e será aplicado automaticamente como <b>GTEC - Grupo Tecnico de Engenharia Clinica</b>.
+      </p>
+
+      <div class="row">
+        <div>
+          <label>Arquivo Excel</label>
+          <input type="file" id="fileXLSX" accept=".xlsx,.xls" />
+        </div>
+        <div>
+          <label>Planilha/Aba</label>
+          <input id="sheetName" placeholder="Vazio = 1ª aba" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnImportExcel">Importar Excel para Supabase</button>
+      </div>
     </div>
   </section>
 
@@ -791,7 +795,7 @@ window.onEdit = (id) => {
   editingId = id;
   setForm(r);
   $("editBanner").classList.remove("hidden");
-  goPage("cadastro");
+  goPage("registro");
 };
 
 window.onDelete = async (id) => {
@@ -1220,9 +1224,10 @@ function previewWhatsApp(){
 function goPage(page){
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.page === page));
   $("page-cadastro").classList.toggle("hidden", page !== "cadastro");
+  $("page-registro").classList.toggle("hidden", page !== "registro");
   $("page-dash-geral").classList.toggle("hidden", page !== "dash-geral");
   $("page-dash-hospital").classList.toggle("hidden", page !== "dash-hospital");
-  if(page !== "cadastro") renderDashboards();
+  if(page !== "cadastro" && page !== "registro") renderDashboards();
 }
 document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => goPage(btn.dataset.page)));
 
