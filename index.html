@@ -259,6 +259,9 @@
         <button class="tab" data-page="dash-hospital">Dashboard por Hospital</button>
       </nav>
     </div>
+
+    <!-- ALERTA DE VISITA/REUNIÃO -->
+    <div id="visitAlert" class="notice hidden" style="margin-top:12px;"></div>
   </div>
 </header>
 
@@ -290,11 +293,32 @@
           </div>
         </div>
         <div class="group">
+          <button id="btnAgendarVisita" class="ghost">📅 Agendar visita/reunião</button>
           <button id="btnWhatsAppPreview" class="primary">Pré-visualizar</button>
         </div>
       </div>
 
       <div class="divider"></div>
+
+      <!-- TABELA DE AGENDAMENTOS -->
+      <h2 style="margin-top:0;">Agendamentos (visita/reunião)</h2>
+      <p class="muted">Lista do que foi agendado e se foi realizado.</p>
+      <div style="max-height:260px; overflow:auto; border-radius:14px; border:1px solid var(--line); margin-bottom:12px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Hospital</th>
+              <th>Responsável</th>
+              <th>Tipo</th>
+              <th>Realizada</th>
+              <th style="width:200px;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyAg"></tbody>
+        </table>
+      </div>
 
       <div style="max-height:520px; overflow:auto; border-radius:14px; border:1px solid var(--line);">
         <table>
@@ -320,9 +344,6 @@
       <p class="muted" id="lastSync"></p>
     </div>
   </section>
-
-
-
 
   <!-- ===================== DASH GERAL ===================== -->
   <section id="page-dash-geral" class="hidden">
@@ -458,8 +479,6 @@
       </div>
     </div>
 
-
-
   <!-- ===================== DASH HOSPITAL ===================== -->
   <section id="page-dash-hospital" class="hidden">
     <div class="grid">
@@ -527,6 +546,62 @@
   </div>
 </div>
 
+<!-- MODAL Agendamento -->
+<div id="agModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Agendar visita/reunião</h3>
+      <button class="ghost" id="btnCloseAgModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="muted" style="margin-top:0;">Registre data/hora e acompanhe se foi realizada.</p>
+
+      <div class="row">
+        <div>
+          <label>Data</label>
+          <input id="ag_data" type="date" />
+        </div>
+        <div>
+          <label>Hora (opcional)</label>
+          <input id="ag_hora" type="time" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Hospital</label>
+          <select id="ag_hospital"></select>
+        </div>
+        <div>
+          <label>Responsável</label>
+          <input id="ag_responsavel" placeholder="Ex: João Pedro" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Tipo</label>
+          <select id="ag_tipo">
+            <option value="Visita">Visita</option>
+            <option value="Reunião">Reunião</option>
+          </select>
+        </div>
+        <div>
+          <label>Observação (opcional)</label>
+          <input id="ag_obs" placeholder="Ex: pauta, local, etc." />
+        </div>
+      </div>
+
+      <div class="muted">
+        Observação: o sistema tenta salvar no Supabase (tabela <b>agendamentos</b>). Se não existir/políticas bloquearem, salva localmente no navegador.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="btnSaveAg" class="primary">Salvar agendamento</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /** SUPABASE */
 const SUPABASE_URL = "https://aykvdakgvugxuurioqum.supabase.co";
@@ -587,6 +662,11 @@ let pieStatus, pieCrit, barHosp, barResp;
 let pieHCrit, pieHStatus;
 let waMessageDraft = "";
 
+/** AGENDAMENTOS STATE */
+let agendamentos = [];
+let agUseLocal = false;
+const AG_LOCAL_KEY = "cp_agendamentos_v1";
+
 /** HELPERS */
 const $ = (id) => document.getElementById(id);
 const esc = (s) => (s ?? "").toString().replace(/[&<>"']/g, m => ({
@@ -595,7 +675,7 @@ const esc = (s) => (s ?? "").toString().replace(/[&<>"']/g, m => ({
 function normalize(s){ return (s ?? "").toString().trim(); }
 function toast(msg){ alert(msg); }
 function setBusy(isBusy){
-  ["btnSalvar","btnLimpar","btnRecarregar","btnImportExcel","btnExport","btnWhatsAppPreview"].forEach(id=>{
+  ["btnSalvar","btnLimpar","btnRecarregar","btnImportExcel","btnExport","btnWhatsAppPreview","btnAgendarVisita","btnSaveAg"].forEach(id=>{
     const el = $(id); if(el) el.disabled = isBusy;
   });
 }
@@ -660,6 +740,20 @@ function initFixedFields(){
     opt.textContent = h;
     selHosp.appendChild(opt);
   }
+
+  // agendamento: hospital
+  const agHosp = $("ag_hospital");
+  agHosp.innerHTML = "";
+  const ph2 = document.createElement("option");
+  ph2.value = "";
+  ph2.textContent = "Selecione um hospital...";
+  agHosp.appendChild(ph2);
+  for(const h of HOSPITAIS){
+    const opt = document.createElement("option");
+    opt.value = h;
+    opt.textContent = h;
+    agHosp.appendChild(opt);
+  }
 }
 
 /** FORM */
@@ -696,6 +790,48 @@ function validate(r){
   if(!r.destino) return "Informe o destino.";
   if(!r.responsavel) return "Informe o responsável.";
   return null;
+}
+
+/** AGENDAMENTOS HELPERS */
+function agLoadLocal(){
+  try{
+    const raw = localStorage.getItem(AG_LOCAL_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if(Array.isArray(parsed)) return parsed;
+  }catch{}
+  return [];
+}
+function agSaveLocal(list){
+  localStorage.setItem(AG_LOCAL_KEY, JSON.stringify(list || []));
+}
+function agSort(list){
+  return [...(list||[])].sort((a,b)=>{
+    const da = (a.data||"");
+    const db = (b.data||"");
+    if(db !== da) return db.localeCompare(da);
+    return (b.hora||"").localeCompare(a.hora||"");
+  });
+}
+function agNormalizeRow(r){
+  return {
+    id: r.id,
+    data: r.data || "",
+    hora: r.hora || "",
+    hospital: r.hospital || "",
+    responsavel: r.responsavel || "",
+    tipo: r.tipo || "Visita",
+    observacao: r.observacao || "",
+    realizada: !!r.realizada,
+    created_at: r.created_at || null,
+    updated_at: r.updated_at || null
+  };
+}
+function agTodayISO(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
 }
 
 /** SUPABASE */
@@ -751,6 +887,118 @@ async function deleteRecord(id){
   if(error) throw error;
 }
 
+/** AGENDAMENTOS (Supabase com fallback local) */
+async function agTryLoadSupabase(){
+  try{
+    const { data: rows, error } = await sb
+      .from("agendamentos")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if(error) throw error;
+
+    agUseLocal = false;
+    agendamentos = (rows||[]).map(agNormalizeRow);
+  }catch(e){
+    console.warn("Agendamentos: fallback local (tabela/policies não disponíveis).", e);
+    agUseLocal = true;
+    agendamentos = agLoadLocal().map(agNormalizeRow);
+  }
+}
+async function agInsert(item){
+  if(agUseLocal){
+    const local = agLoadLocal();
+    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+    const row = agNormalizeRow({
+      ...item,
+      id,
+      realizada: false,
+      created_at: new Date().toISOString()
+    });
+    local.unshift(row);
+    agSaveLocal(local);
+    agendamentos = local.map(agNormalizeRow);
+    return row;
+  }
+
+  try{
+    const payload = { ...item, realizada: false };
+    const { data: row, error } = await sb.from("agendamentos").insert(payload).select("*").single();
+    if(error) throw error;
+    const normalized = agNormalizeRow(row);
+    agendamentos.unshift(normalized);
+    return normalized;
+  }catch(e){
+    console.warn("Falha ao inserir no Supabase, salvando localmente.", e);
+    agUseLocal = true;
+    const local = agLoadLocal();
+    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+    const row = agNormalizeRow({
+      ...item,
+      id,
+      realizada: false,
+      created_at: new Date().toISOString()
+    });
+    local.unshift(row);
+    agSaveLocal(local);
+    agendamentos = local.map(agNormalizeRow);
+    return row;
+  }
+}
+async function agToggleRealizada(id){
+  const current = agendamentos.find(x => x.id === id);
+  if(!current) return;
+
+  const newVal = !current.realizada;
+
+  if(agUseLocal){
+    const local = agLoadLocal().map(agNormalizeRow).map(x => x.id === id ? { ...x, realizada: newVal, updated_at: new Date().toISOString() } : x);
+    agSaveLocal(local);
+    agendamentos = local;
+    return;
+  }
+
+  try{
+    const { data: row, error } = await sb
+      .from("agendamentos")
+      .update({ realizada: newVal, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if(error) throw error;
+
+    const normalized = agNormalizeRow(row);
+    agendamentos = agendamentos.map(x => x.id === id ? normalized : x);
+  }catch(e){
+    console.warn("Falha ao atualizar no Supabase, atualizando localmente.", e);
+    agUseLocal = true;
+    const local = agLoadLocal().map(agNormalizeRow).map(x => x.id === id ? { ...x, realizada: newVal, updated_at: new Date().toISOString() } : x);
+    agSaveLocal(local);
+    agendamentos = local;
+  }
+}
+async function agDelete(id){
+  if(agUseLocal){
+    const local = agLoadLocal().map(agNormalizeRow).filter(x => x.id !== id);
+    agSaveLocal(local);
+    agendamentos = local;
+    return;
+  }
+
+  try{
+    const { error } = await sb.from("agendamentos").delete().eq("id", id);
+    if(error) throw error;
+    agendamentos = agendamentos.filter(x => x.id !== id);
+  }catch(e){
+    console.warn("Falha ao excluir no Supabase, excluindo localmente.", e);
+    agUseLocal = true;
+    const local = agLoadLocal().map(agNormalizeRow).filter(x => x.id !== id);
+    agSaveLocal(local);
+    agendamentos = local;
+  }
+}
+
 /** TABLE */
 function renderTable(){
   const q = normalize($("q").value).toLowerCase();
@@ -789,6 +1037,57 @@ function renderTable(){
   $("countInfo").textContent = `Mostrando ${filtered.length} de ${data.length} registros.`;
 }
 
+/** AG TABLE */
+function renderAgTable(){
+  const tbody = $("tbodyAg");
+  const list = agSort(agendamentos);
+
+  tbody.innerHTML = list.map(a => `
+    <tr>
+      <td>${esc(fmtDate(a.data))}</td>
+      <td>${esc(a.hora || "")}</td>
+      <td>${esc(a.hospital || "")}</td>
+      <td>${esc(a.responsavel || "")}</td>
+      <td>${esc(a.tipo || "Visita")}</td>
+      <td>${a.realizada ? `<span class="chip">✅ Sim</span>` : `<span class="chip">⏳ Não</span>`}</td>
+      <td>
+        <button class="ghost small" onclick="onAgToggle('${a.id}')">${a.realizada ? "Marcar não realizada" : "Marcar realizada"}</button>
+        <button class="danger small" onclick="onAgDelete('${a.id}')">Excluir</button>
+      </td>
+    </tr>
+  `).join("");
+
+  renderVisitAlert();
+}
+
+function renderVisitAlert(){
+  const el = $("visitAlert");
+  const today = agTodayISO();
+
+  const upcoming = agendamentos
+    .filter(a => !!a.data)
+    .filter(a => !a.realizada)
+    .sort((a,b)=> (a.data||"").localeCompare(b.data||"") || (a.hora||"").localeCompare(b.hora||""));
+
+  const todayItems = upcoming.filter(a => a.data === today);
+  const nextItem = upcoming.find(a => a.data >= today);
+
+  if(todayItems.length){
+    const lines = todayItems.slice(0,3).map(a => `• ${a.tipo || "Visita"} - ${a.hospital || "(hospital)"}${a.hora ? " às " + a.hora : ""} (${a.responsavel || "sem responsável"})`);
+    el.innerHTML = `📌 <b>ALERTA:</b> Há visita/reunião <b>marcada para hoje (${fmtDate(today)})</b>:\n<br>${esc(lines.join("\n")).replaceAll("\n","<br>")}`;
+    el.classList.remove("hidden");
+    return;
+  }
+
+  if(nextItem && nextItem.data){
+    el.innerHTML = `📅 Próxima visita/reunião marcada para <b>${esc(fmtDate(nextItem.data))}</b>${nextItem.hora ? ` às <b>${esc(nextItem.hora)}</b>` : ""} — ${esc(nextItem.tipo || "Visita")} em <b>${esc(nextItem.hospital || "")}</b> (${esc(nextItem.responsavel || "sem responsável")}).`;
+    el.classList.remove("hidden");
+    return;
+  }
+
+  el.classList.add("hidden");
+}
+
 window.onEdit = (id) => {
   const r = data.find(x => x.id === id);
   if(!r) return;
@@ -820,6 +1119,27 @@ window.onDelete = async (id) => {
   }catch(e){
     console.error(e);
     toast("Erro ao excluir (RLS/Policies).");
+  }finally{
+    setBusy(false);
+  }
+};
+
+/** Agendamentos actions */
+window.onAgToggle = async (id) => {
+  setBusy(true);
+  try{
+    await agToggleRealizada(id);
+    renderAgTable();
+  }finally{
+    setBusy(false);
+  }
+};
+window.onAgDelete = async (id) => {
+  if(!confirm("Excluir este agendamento?")) return;
+  setBusy(true);
+  try{
+    await agDelete(id);
+    renderAgTable();
   }finally{
     setBusy(false);
   }
@@ -1168,27 +1488,57 @@ function refreshResponsavelSelect(){
 }
 function buildWhatsAppMessage(responsavel){
   const list = responsavel === "__ALL__" ? data : data.filter(r => normalize(r.responsavel) === responsavel);
-  if(!list.length) return "";
+  const agList = responsavel === "__ALL__"
+    ? agendamentos
+    : agendamentos.filter(a => normalize(a.responsavel) === responsavel);
+
+  if(!list.length && !agList.length) return "";
 
   const title = responsavel === "__ALL__"
     ? `📌 *Relatório de Processos (GTEC)*`
     : `📌 *Relatório de Processos (GTEC) - ${responsavel}*`;
 
-  const critOrder = (c) => c === "Alta" ? 3 : (c === "Média" ? 2 : 1);
-  const sorted = [...list].sort((a,b)=>{
-    const dc = critOrder(normalizeCrit(b.criticidade)) - critOrder(normalizeCrit(a.criticidade));
-    if(dc !== 0) return dc;
-    return (b.data||"").localeCompare(a.data||"");
-  });
+  let msg = `${title}\n`;
 
-  const lines = sorted.slice(0, 80).map(r => {
-    const crit = normalizeCrit(r.criticidade);
-    return `• *${r.numero_processo}* | ${fmtDate(r.data)} | ${r.hospital}\n  Status: ${r.status} | Criticidade: *${crit}*\n  Assunto: ${r.assunto}\n  Destino: ${r.destino}`;
-  });
+  // processos
+  if(list.length){
+    const critOrder = (c) => c === "Alta" ? 3 : (c === "Média" ? 2 : 1);
+    const sorted = [...list].sort((a,b)=>{
+      const dc = critOrder(normalizeCrit(b.criticidade)) - critOrder(normalizeCrit(a.criticidade));
+      if(dc !== 0) return dc;
+      return (b.data||"").localeCompare(a.data||"");
+    });
 
-  if(sorted.length > 80) lines.push(`\n(Mostrando 80 de ${sorted.length}. Exporte CSV para lista completa.)`);
+    const lines = sorted.slice(0, 80).map(r => {
+      const crit = normalizeCrit(r.criticidade);
+      return `• *${r.numero_processo}* | ${fmtDate(r.data)} | ${r.hospital}\n  Status: ${r.status} | Criticidade: *${crit}*\n  Assunto: ${r.assunto}\n  Destino: ${r.destino}`;
+    });
 
-  return `${title}\n\n${lines.join("\n\n")}`;
+    if(sorted.length > 80) lines.push(`\n(Mostrando 80 de ${sorted.length}. Exporte CSV para lista completa.)`);
+
+    msg += `\n\n${lines.join("\n\n")}`;
+  }
+
+  // agendamentos
+  if(agList.length){
+    const today = agTodayISO();
+    const sortedAg = [...agList]
+      .filter(a => !!a.data)
+      .sort((a,b)=> (a.data||"").localeCompare(b.data||"") || (a.hora||"").localeCompare(b.hora||""));
+
+    const agLines = sortedAg.slice(0, 40).map(a => {
+      const st = a.realizada ? "✅ Realizada" : (a.data === today ? "📌 HOJE" : "⏳ Pendente");
+      const when = `${fmtDate(a.data)}${a.hora ? " " + a.hora : ""}`;
+      const hosp = a.hospital ? ` | ${a.hospital}` : "";
+      const obs = a.observacao ? `\n  Obs: ${a.observacao}` : "";
+      return `• *${a.tipo || "Visita"}* | ${when}${hosp}\n  Status: ${st}${obs}`;
+    });
+
+    msg += `\n\n📅 *Agendamentos (visita/reunião)*\n\n${agLines.join("\n\n")}`;
+    if(sortedAg.length > 40) msg += `\n\n(Mostrando 40 de ${sortedAg.length} agendamentos.)`;
+  }
+
+  return msg.trim();
 }
 function openWaModal(message){
   waMessageDraft = message || "";
@@ -1220,8 +1570,53 @@ function openWhatsAppFromModal(){
 function previewWhatsApp(){
   const resp = $("selResponsavelWA").value;
   const msg = buildWhatsAppMessage(resp);
-  if(!msg) return toast("Sem registros para esse responsável.");
+  if(!msg) return toast("Sem registros/agendamentos para esse responsável.");
   openWaModal(msg);
+}
+
+/** AG MODAL */
+function openAgModal(){
+  $("ag_data").value = "";
+  $("ag_hora").value = "";
+  $("ag_hospital").value = "";
+  $("ag_responsavel").value = "";
+  $("ag_tipo").value = "Visita";
+  $("ag_obs").value = "";
+  $("agModal").classList.remove("hidden");
+}
+function closeAgModal(){ $("agModal").classList.add("hidden"); }
+function agValidate(p){
+  if(!p.data) return "Informe a data do agendamento.";
+  if(!p.hospital) return "Selecione o hospital.";
+  if(!p.responsavel) return "Informe o responsável.";
+  if(!p.tipo) return "Selecione o tipo.";
+  return null;
+}
+async function saveAgendamento(){
+  const payload = {
+    data: $("ag_data").value || "",
+    hora: $("ag_hora").value || "",
+    hospital: $("ag_hospital").value || "",
+    responsavel: normalize($("ag_responsavel").value),
+    tipo: $("ag_tipo").value || "Visita",
+    observacao: normalize($("ag_obs").value)
+  };
+  const err = agValidate(payload);
+  if(err) return toast(err);
+
+  setBusy(true);
+  try{
+    await agInsert(payload);
+    closeAgModal();
+    renderAgTable();
+    refreshResponsavelSelect();
+    toast("Agendamento salvo!");
+  }catch(e){
+    console.error(e);
+    toast("Erro ao salvar agendamento.");
+  }finally{
+    setBusy(false);
+  }
 }
 
 /** NAV */
@@ -1239,6 +1634,7 @@ function renderAll(){
   renderTable();
   refreshResponsavelSelect();
   renderDashboards();
+  renderAgTable();
 }
 
 /** EVENTS */
@@ -1259,6 +1655,12 @@ $("waPreviewText").addEventListener("input", ()=>$("waCharCount").textContent = 
 $("btnCopyWa").addEventListener("click", copyWaText);
 $("btnOpenWa").addEventListener("click", openWhatsAppFromModal);
 
+/** Agendamento events */
+$("btnAgendarVisita").addEventListener("click", openAgModal);
+$("btnCloseAgModal").addEventListener("click", closeAgModal);
+$("agModal").addEventListener("click", (e)=>{ if(e.target === $("agModal")) closeAgModal(); });
+$("btnSaveAg").addEventListener("click", saveAgendamento);
+
 /** CHAT GEMINI */
 $("btnGemini").addEventListener("click", () => {
   window.open(
@@ -1274,15 +1676,10 @@ $("btnGemini").addEventListener("click", () => {
   initFixedFields();
   clearForm();
   await testConnection();
+  await agTryLoadSupabase();
   await loadFromSupabase();
+  renderAgTable();
 })();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
