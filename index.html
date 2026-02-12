@@ -1,9 +1,47 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Original Title</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scheduling Modal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.js"></script>
 </head>
 <body>
-    <h1>Hello World!</h1>
-    <p>This is the original content of the index.html file.</p>
+
+<div id="scheduling-modal">
+    <form id="scheduling-form">
+        <!-- Existing inputs for scheduling -->
+        <input type="text" name="event-name" required placeholder="Event Name">
+        <input type="date" name="event-date" required>
+
+        <!-- New file upload input -->
+        <input type="file" id="file-upload" accept='.pdf,.doc,.docx' required>
+        <button type="submit">Submit</button>
+    </form>
+</div>
+
+<script>
+    const supabaseUrl = 'https://your-supabase-url.supabase.co';
+    const supabaseKey = 'your-supabase-key';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    document.getElementById('scheduling-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const fileInput = document.getElementById('file-upload');
+        const file = fileInput.files[0];
+
+        // Upload file to Supabase Storage
+        const { data, error } = await supabase.storage.from('ATA GTEC').upload(`attachments/${file.name}`, file);
+        if (error) {
+            console.error('Error uploading file:', error);
+            return;
+        }
+
+        // Proceed with submitting other form data...
+        console.log('File uploaded successfully:', data);
+        // You can add additional code here to handle the form submission
+    });
+</script>
+
 </body>
 </html>
