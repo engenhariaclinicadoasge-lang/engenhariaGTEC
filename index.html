@@ -1,46 +1,1602 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scheduling Modal</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GTEC Brasil - Controle de Processos</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+  <!-- SheetJS (Excel) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root{
+      --bg0:#0f172a; --bg1:#1e293b;
+      --card: #1e293b;
+      --card-border: #334155;
+      --muted:#94a3b8; --text:#f8fafc;
+      --accent:#10b981; --accent-hover:#059669;
+      --danger:#ef4444; --warn:#f59e0b;
+      --line:#334155; --chip:#0f172a; --input:#020617;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --headerbg: rgba(15, 23, 42, 0.85);
+      --overlay: rgba(0,0,0,.7);
+      --radius: 8px;
+    }
+    html[data-theme="light"]{
+      --bg0:#f1f5f9; --bg1:#e2e8f0;
+      --card: #ffffff;
+      --card-border: #cbd5e1;
+      --muted:#64748b; --text:#0f172a;
+      --accent:#059669; --accent-hover:#047857;
+      --danger:#dc2626; --warn:#d97706;
+      --line:#e2e8f0; --chip:#f1f5f9; --input:#ffffff;
+      --headerbg: rgba(255, 255, 255, 0.9);
+      --overlay: rgba(255,255,255,.5);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg0);
+      color:var(--text);
+      line-height: 1.5;
+    }
+    header{
+      position:sticky; top:0; z-index:50;
+      background:var(--headerbg); backdrop-filter: blur(12px);
+      border-bottom:1px solid var(--line);
+      padding: 0.75rem 0;
+    }
+    .wrap{max-width:1280px; margin:0 auto; padding:0 1.5rem;}
+    .topbar{display:flex; gap:1rem; align-items:center; justify-content:space-between; flex-wrap:wrap;}
+    .brand{display:flex; align-items:center; gap:0.75rem;}
+    .logo{
+      width:40px; height:40px; border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      color: white;
+      display:grid; place-items:center;
+      font-weight:800; font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    .brand h1{font-size:1.125rem; margin:0; font-weight: 700; letter-spacing: -0.025em;}
+    .brand p{margin:0; color:var(--muted); font-size:0.75rem; font-weight: 500;}
+    nav{display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; background: var(--chip); padding: 4px; border-radius: calc(var(--radius) + 4px); border: 1px solid var(--line);}
+    .tab{
+      padding: 0.5rem 1rem; border-radius: var(--radius); border:none;
+      background:transparent; color:var(--muted); cursor:pointer; font-weight:600; font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active{background: var(--card); color:var(--accent); box-shadow: var(--shadow);}
+    main{padding: 2rem 0 4rem;}
+    .grid{display:grid; gap:1.5rem;}
+    .grid.cols-2{grid-template-columns:repeat(1, minmax(0,1fr));}
+    .grid.cols-3{grid-template-columns:repeat(2, minmax(0,1fr));}
+    @media (min-width: 1024px) { .grid.cols-2 { grid-template-columns: repeat(2, 1fr); } .grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 900px){ .grid.cols-3{grid-template-columns:1fr;} }
+    .card{
+      background:var(--card);
+      border:1px solid var(--card-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card h2{margin:0 0 0.5rem; font-size:1.1rem; font-weight: 600; color: var(--text);}
+    .muted{color:var(--muted); font-size:0.875rem;}
+    label{display:block; font-size:0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color:var(--muted); margin:0 0 0.5rem;}
+    input, select, textarea{
+      width:100%;
+      padding: 0.75rem;
+      background:var(--input);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      color:var(--text);
+      outline:none;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+    input[readonly]{ opacity:0.7; cursor:not-allowed; background: var(--bg0); }
+    .row{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem;}
+    @media (max-width:700px){ .row{grid-template-columns:1fr;} }
+    .actions{display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:1.5rem;}
+    button{
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius);
+      border:1px solid var(--line);
+      background:var(--card);
+      color:var(--text);
+      cursor:pointer;
+      font-weight:600;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    button.primary{background:var(--accent); border-color:var(--accent); color:white;}
+    button.primary:hover{background:var(--accent-hover); border-color:var(--accent-hover);}
+    button.danger{background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.3); color: var(--danger);}
+    button.danger:hover{background:rgba(239,68,68,0.2);}
+    button.ghost{background:transparent; border-color: transparent;}
+    button.ghost:hover{background: var(--bg0);}
+    button:active{transform: translateY(1px);}
+    button:disabled{opacity:0.5; cursor:not-allowed; transform: none;}
+    .table-container { border-radius: var(--radius); border: 1px solid var(--line); overflow: hidden; background: var(--card); }
+    table{width:100%; border-collapse:collapse; font-size: 0.875rem;}
+    thead th{
+      text-align:left; font-size:0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color:var(--muted);
+      padding: 1rem; border-bottom:1px solid var(--line);
+      background:var(--bg0);
+      position:sticky; top:0;
+    }
+    tbody td{ padding: 1rem; border-bottom:1px solid var(--line); vertical-align:middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover{background:var(--bg0);}
+    .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 0.25rem 0.75rem; border-radius:999px;
+      background:var(--bg0);
+      border:1px solid var(--line);
+      font-size:0.75rem; font-weight: 600;
+      white-space:nowrap;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .st-verde { background: var(--accent); }
+    .st-amarelo { background: var(--warn); }
+    .st-vermelho { background: var(--danger); }
+    .st-cinza { background: var(--muted); }
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+      gap:1rem;
+    }
+    .kpi{
+      padding: 1.5rem; border-radius: var(--radius);
+      background:var(--card); border: 1px solid var(--line);
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .kpi .v{font-size:2rem; font-weight:800; line-height: 1; color: var(--text); margin-top: 0.5rem;}
+    .kpi .t{font-size:0.875rem; color:var(--muted); font-weight: 500;}
+    .chart{
+      width:100%; height:300px;
+      border-radius: var(--radius); border:1px solid var(--line);
+      background:var(--card);
+      padding:1rem;
+      display:flex;
+      flex-direction:column;
+    }
+    .chart h3{margin:0 0 1rem; font-size:0.875rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); text-align: center;}
+    .chart canvas{flex:1;}
+    .right{display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+    .search{min-width:260px;}
+    .hidden{display:none !important;}
+    .divider{height:1px; background:var(--line); margin:1.5rem 0;}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 12px; border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--bg0);
+      font-size:0.75rem; color:var(--muted); font-weight: 500;
+    }
+    .ok{color:var(--accent)} .bad{color:var(--danger)}
+    .toolbar{
+      display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
+      margin-top:1rem;
+    }
+    .group{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;}
+    .modal-overlay{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display:flex; align-items:center; justify-content:center;
+      padding:1rem; z-index:9999;
+    }
+    .modal{
+      width:min(600px, 100%);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: calc(var(--radius) * 2);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      overflow:hidden; animation: popIn 0.2s ease-out;
+    }
+    @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 1.25rem; border-bottom:1px solid var(--line);
+    }
+    .modal-header h3{margin:0; font-size:1.125rem; font-weight: 600;}
+    .modal-body{padding: 1.25rem;}
+    .modal-footer{
+      display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:flex-end;
+      padding: 1.25rem; border-top:1px solid var(--line); background: var(--bg0);
+    }
+    textarea#waPreviewText{
+      min-height:200px; font-family: monospace; font-size: 0.875rem; line-height: 1.5;
+    }
+    .notice{
+      padding:10px 12px; border-radius:14px;
+      background:rgba(245,158,11,.10);
+      border:1px solid rgba(245,158,11,.30);
+      color:inherit;
+      font-size:12px;
+    }
+  </style>
 </head>
+
 <body>
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">G</div>
+        <div>
+          <h1>GTEC Brasil</h1>
+          <p>Controle de Processos</p>
+        </div>
+      </div>
 
-<div id="scheduling-modal">
-    <form id="scheduling-form">
-        <!-- Existing inputs for scheduling -->
-        <input type="text" name="event-name" required placeholder="Event Name">
-        <input type="date" name="event-date" required>
+      <div class="right">
+        <div class="pill" id="connStatus">Conexão: <b class="bad">...</b></div>
+        <button id="btnTheme" class="ghost" title="Alternar tema">🌓</button>
+        <button id="btnGemini" class="ghost" title="Abrir Chat Gemini">🤖 Chat-IA</button>
+      </div>
 
-        <!-- New file upload input -->
-        <input type="file" id="file-upload" accept='.pdf,.doc,.docx' required>
-        <button type="submit">Submit</button>
-    </form>
+      <nav>
+        <button class="tab active" data-page="cadastro">Cadastro</button>
+        <button class="tab" data-page="registro">Registros</button>
+        <button class="tab" data-page="dash-geral">Dashboard Geral</button>
+        <button class="tab" data-page="dash-hospital">Dashboard Hospital</button>
+        <button class="tab" data-page="implantacao">Implantação</button>
+      </nav>
+    </div>
+
+    <!-- ALERTA DE VISITA/REUNIÃO -->
+    <div id="visitAlert" class="notice hidden" style="margin-top:12px;"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ===================== REGISTRO ===================== -->
+  <section id="page-registro" class="hidden grid">
+    <div class="card">
+      <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; margin-bottom: 1rem;">
+        <div>
+          <h2>Registros</h2>
+          <p class="muted">Busca + exportação + ações.</p>
+        </div>
+
+        <div class="right" style="flex: 1;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:flex-end; width:100%;">
+            <div style="width:160px;">
+              <label>Data inicial</label>
+              <input id="waDataInicial" type="date" />
+            </div>
+            <div style="width:160px;">
+              <label>Data final</label>
+              <input id="waDataFinal" type="date" />
+            </div>
+
+            <input id="q" class="search" placeholder="🔍 Buscar por processo, hospital, responsável..." />
+            <button id="btnExport" class="ghost" title="Exporta CSV">⬇ CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="group">
+          <div style="min-width: 200px;">
+            <label>Exportar por responsável</label>
+            <select id="selResponsavelWA"></select>
+          </div>
+          <div style="width: 150px;">
+            <label>Telefone (opcional)</label>
+            <input id="waPhone" placeholder="5591..." />
+          </div>
+        </div>
+        <div class="group">
+          <button id="btnAgendarVisita" class="ghost">📅 Agendar visita</button>
+          <button id="btnWhatsAppPreview" class="primary" style="background: #25D366; border-color: #25D366;">WhatsApp</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- TABELA DE AGENDAMENTOS -->
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Agendamentos (visita/reunião)</h3>
+      <div class="table-container" style="max-height:200px; overflow:auto; margin-bottom:1.5rem;">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Hospital</th>
+              <th>Responsável</th>
+              <th>Tipo</th>
+              <th>Realizada</th>
+              <th style="width:180px; text-align:right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyAg"></tbody>
+        </table>
+      </div>
+
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Processos</h3>
+      <div class="table-container" style="max-height:500px; overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Processo</th>
+              <th>Setor</th>
+              <th>Data</th>
+              <th>Hospital</th>
+              <th>Assunto</th>
+              <th>Destino</th>
+              <th>Responsável</th>
+              <th>Status</th>
+              <th>Crit.</th>
+              <th style="width:160px; text-align:right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <p class="muted" style="margin-top:10px; text-align:right;" id="countInfo"></p>
+      <p class="muted" style="text-align:right;" id="lastSync"></p>
+    </div>
+  </section>
+
+  <!-- ===================== DASH GERAL ===================== -->
+  <section id="page-dash-geral" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <h2>Dashboard Geral</h2>
+        <p class="muted">Resumo automático baseado nos registros do Supabase.</p>
+
+        <div class="kpis" style="margin-top:1rem;">
+          <div class="kpi"><div class="t">Total</div><div class="v" id="k_total">0</div></div>
+          <div class="kpi"><div class="t">Tramitados</div><div class="v" id="k_tram">0</div></div>
+          <div class="kpi"><div class="t">Em andamento</div><div class="v" id="k_and">0</div></div>
+          <div class="kpi"><div class="t">Em validação</div><div class="v" id="k_val">0</div></div>
+          <div class="kpi"><div class="t">Pendentes</div><div class="v" id="k_pend">0</div></div>
+        </div>
+      </div>
+
+      <div class="grid cols-3">
+        <div class="chart"><h3>Status</h3><canvas id="pieStatus"></canvas></div>
+        <div class="chart"><h3>Criticidade</h3><canvas id="pieCrit"></canvas></div>
+      </div>
+
+      <div class="grid cols-3">
+        <div class="chart"><h3>Top Hospitais</h3><canvas id="barHospitais"></canvas></div>
+        <div class="chart"><h3>Top Responsáveis</h3><canvas id="barResponsaveis"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CADASTRO ===================== -->
+  <section id="page-cadastro" class="grid cols-2">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h2>Novo registro</h2>
+        <button class="ghost small" id="btnLimpar">Limpar</button>
+      </div>
+      <p class="muted">Setor fixo em <b>GTEC</b>.</p>
+
+      <div class="row">
+        <div>
+          <label>Número do processo</label>
+          <input id="f_numero" placeholder="Ex: 2026/000123" />
+        </div>
+        <div>
+          <label>Setor (fixo)</label>
+          <input id="f_setor" readonly />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Data</label>
+          <input id="f_data" type="date" />
+        </div>
+        <div>
+          <label>Hospital</label>
+          <select id="f_hospital"></select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Assunto</label>
+          <input id="f_assunto" placeholder="Ex: Termo de Referência" />
+        </div>
+        <div>
+          <label>Destino</label>
+          <input id="f_destino" placeholder="Ex: Setor Y / SEI / Comissão" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Responsável</label>
+          <input id="f_responsavel" placeholder="Ex: João Pedro" />
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="f_status">
+            <option value="Em andamento">Em andamento</option>
+            <option value="Em validação">Em validação</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Tramitado">Tramitado</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Criticidade</label>
+          <select id="f_criticidade">
+            <option value="Baixa">Baixa</option>
+            <option value="Média" selected>Média</option>
+            <option value="Alta">Alta</option>
+          </select>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <div class="pill" style="width:100%; text-align:center;">Só edita se "Em andamento"</div>
+        </div>
+      </div>
+
+      <div class="actions" style="justify-content:flex-end;">
+        <button class="ghost" id="btnRecarregar" title="Recarrega do Supabase">Recarregar</button>
+        <button class="primary" id="btnSalvar">Salvar Registro</button>
+      </div>
+
+      <div id="editBanner" class="notice hidden" style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+        <span>Editando registro.</span>
+        <button id="btnCancelarEdicao" class="ghost small">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Importar Excel (.xlsx)</h2>
+      <p class="muted">
+        Colunas: <b>numero_processo, data, hospital, assunto, destino, responsavel, status, criticidade</b>.
+      </p>
+
+      <div style="margin-top:1.5rem; padding:1.5rem; border:2px dashed var(--line); border-radius:var(--radius); text-align:center;">
+        <input type="file" id="fileXLSX" accept=".xlsx,.xls" />
+      </div>
+
+      <div style="margin-top:1rem;">
+        <label>Planilha/Aba</label>
+        <input id="sheetName" placeholder="Vazio = 1ª aba" />
+      </div>
+
+      <div class="actions">
+        <button id="btnImportExcel" class="primary" style="width:100%;">Importar Excel para Supabase</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DASH HOSPITAL ===================== -->
+  <section id="page-dash-hospital" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
+          <div>
+            <h2>Dashboard por Hospital</h2>
+            <p class="muted">Filtre e veja resumo do hospital selecionado.</p>
+          </div>
+          <div style="min-width:280px;">
+            <label>Selecionar hospital</label>
+            <select id="selHospital"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="t">Total</div><div class="v" id="h_total">0</div></div>
+        <div class="kpi"><div class="t">Em andamento</div><div class="v" id="h_and">0</div></div>
+        <div class="kpi"><div class="t">Em validação</div><div class="v" id="h_val">0</div></div>
+        <div class="kpi"><div class="t">Pendentes</div><div class="v" id="h_pend">0</div></div>
+        <div class="kpi"><div class="t">Tramitados</div><div class="v" id="h_tram">0</div></div>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="chart"><h3>Criticidade</h3><canvas id="pieHCrit"></canvas></div>
+        <div class="chart"><h3>Status</h3><canvas id="pieHStatus"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Últimos registros do hospital</h2>
+        <div class="table-container" style="max-height:420px; overflow:auto; margin-top:10px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Processo</th><th>Setor</th><th>Assunto</th><th>Destino</th><th>Responsável</th><th>Status</th><th>Criticidade</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyHospital"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== IMPLANTAÇÃO ===================== -->
+  <section id="page-implantacao" class="hidden">
+    <div class="card">
+      <h2>Implantação</h2>
+      <p class="muted">Área destinada ao controle de implantação.</p>
+      <div style="min-height: 400px; display:flex; align-items:center; justify-content:center; color:var(--muted);">
+        (Aguardando a equipe do bolo passar os dados para verificar se vai dar pra implantar nesse estilo de CODIGO)
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- MODAL WhatsApp -->
+<div id="waModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Prévia da mensagem (WhatsApp)</h3>
+      <button class="ghost" id="btnCloseWaModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="muted" style="margin-top:0;">Edite antes de enviar.</p>
+      <label>Texto</label>
+      <textarea id="waPreviewText"></textarea>
+      <div class="muted" id="waCharCount" style="margin-top:6px; text-align:right;"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="btnCopyWa" class="ghost">Copiar</button>
+      <button id="btnOpenWa" class="primary" style="background:#25D366; border-color:#25D366;">Abrir WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL Agendamento -->
+<div id="agModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Agendar visita/reunião</h3>
+      <button class="ghost" id="btnCloseAgModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="muted" style="margin-top:0;">Registre data/hora e acompanhe.</p>
+
+      <div class="row">
+        <div>
+          <label>Data</label>
+          <input id="ag_data" type="date" />
+        </div>
+        <div>
+          <label>Hora (opcional)</label>
+          <input id="ag_hora" type="time" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Hospital</label>
+          <select id="ag_hospital"></select>
+        </div>
+        <div>
+          <label>Responsável</label>
+          <input id="ag_responsavel" placeholder="Ex: João Pedro" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Tipo</label>
+          <select id="ag_tipo">
+            <option value="Visita">Visita</option>
+            <option value="Reunião">Reunião</option>
+          </select>
+        </div>
+        <div>
+          <label>Observação (opcional)</label>
+          <input id="ag_obs" placeholder="Ex: pauta, local, etc." />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="btnSaveAg" class="primary">Salvar agendamento</button>
+    </div>
+  </div>
 </div>
 
 <script>
-    const supabaseUrl = 'https://your-supabase-url.supabase.co';
-    const supabaseKey = 'your-supabase-key';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+/** SUPABASE */
+const SUPABASE_URL = "https://aykvdakgvugxuurioqum.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5a3ZkYWtndnVneHV1cmlvcXVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MTA1OTIsImV4cCI6MjA4NjE4NjU5Mn0.T3HPPYsmy3-Xi9aBmdkJEWyy6RKqWvSWLtYzKyfwFSg";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    document.getElementById('scheduling-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const fileInput = document.getElementById('file-upload');
-        const file = fileInput.files[0];
+/** SETOR FIXO */
+const FIXED_SETOR = "GTEC - Grupo Tecnico de Engenharia Clinica.";
 
-        // Upload file to Supabase Storage
-        const { data, error } = await supabase.storage.from('ATA GTEC').upload(`attachments/${file.name}`, file);
-        if (error) {
-            console.error('Error uploading file:', error);
-            return;
-        }
+/** LISTA FIXA DE HOSPITAIS */
+const HOSPITAIS = [
+  "POLICLÍNICA DE TUCURUÍ",
+  "POLICLINICA METROPOLITANA DE BELÉM",
+  "HOSPITAL DE CLINICAS GASPAR VIANA",
+  "HOSPITAL GERAL DE IPIXUNA DO PARA",
+  "HOSPITAL GERAL DE TAILANDIA",
+  "HOSPITAL JEAN BITAR",
+  "HOSPITAL METROPOLITANO DE URGÊNCIA E EMERGÊNCIA",
+  "HOSPITAL ONCOLÓGICO INFANTIL OCTÁVIO LOBO",
+  "HOSPITAL OPHIR LOYOLA",
+  "HOSPITAL PÚBLICO ESTADUAL GALILEU",
+  "HOSPITAL PÚBLICO GERAL DOS CASTELO DOS SONHOS",
+  "HOSPITAL REGIONAL DE CAMETA",
+  "HOSPITAL REGIONAL DE CONCEICAO DO ARAGUAIA",
+  "HOSPITAL REGIONAL DE TUCURUI",
+  "HOSPITAL REGIONAL DO BAIXO AMAZONAS DO PA DR WALDEMAR PENNA",
+  "HOSPITAL SANTA ROSA",
+  "HOSPITAL REGIONAL DO SUDESTE DO PARA DR GERALDO VELOSO",
+  "HOSPITAL REGIONAL DR OLIMPIO CARDOSO DA SILVEIRA",
+  "HOSPITAL REGIONAL PÚBLICO DA TRANSAMAZÔNICA",
+  "HOSPITAL REGIONAL PÚBLICO DE CASTANHAL",
+  "HOSPITAL REGIONAL PÚBLICO DO ARAGUAIA",
+  "HOSPITAL REGIONAL PUBLICO DO LESTE DO PARA",
+  "HOSPITAL REGIONAL PUBLICO DO MARAJO",
+  "HOSPITAL REGIONAL PÚBLICO DO TAPAJOS ITAITUBA",
+  "HOSPITAL REGIONAL PÚBLICO DOS CAETES DR JORGE NETO DA COSTA",
+  "HOSPITAL REGIONAL PUBLICO DR ABELARDO SANTOS",
+  "HOSPITAL REGIONAL PÚBLICO MATERNO INFANTIL DE BARCARENA",
+  "Centro Integrado de Inclusão e Reabilitação - CIIR",
+  "HOSPITAL DA MULHER SENHORA DE NAZARÉ",
+  "HOSPITAL MATERNO INFANTIL DE ALTAMIRA",
+  "HOSPITAL MATERNO INFANTIL DE BREVES",
+  "HOSPITAL MATERNO INFANTIL DE MARABÁ",
+  "HOSPITAL MATERNO INFANTIL DE SANTARÉM",
+  "HOSPITAL MUNICIPAL DE RIO MARIA",
+  "HOSPITAL PRONTO SOCORRO",
+  "POLICLÍNICA DE ALTAMIRA",
+  "POLICLÍNICA DE BREVES",
+  "POLICLINICA DE CAPANEMA",
+  "POLICLÍNICA DE MARABÁ",
+  "POLICLÍNICA DE SANTARÉM"
+];
 
-        // Proceed with submitting other form data...
-        console.log('File uploaded successfully:', data);
-        // You can add additional code here to handle the form submission
+/** STATE */
+let data = [];
+let editingId = null;
+let pieStatus, pieCrit, barHosp, barResp;
+let pieHCrit, pieHStatus;
+let waMessageDraft = "";
+
+/** AGENDAMENTOS STATE */
+let agendamentos = [];
+let agUseLocal = false;
+const AG_LOCAL_KEY = "cp_agendamentos_v1";
+
+/** HELPERS */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => (s ?? "").toString().replace(/[&<>"']/g, m => ({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+}[m]));
+function normalize(s){ return (s ?? "").toString().trim(); }
+function toast(msg){ alert(msg); }
+function setBusy(isBusy){
+  document.querySelectorAll("main button, .modal button").forEach(b => {
+    b.disabled = isBusy;
+  });
+}
+function fmtDate(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-");
+  return (d && m && y) ? `${d}/${m}/${y}` : iso;
+}
+function connBadge(ok){
+  const el = $("connStatus");
+  el.innerHTML = ok ? `Conexão: <b class="ok">OK</b>` : `Conexão: <b class="bad">ERRO</b>`;
+}
+function normalizeCrit(v){
+  const x = normalize(v);
+  if(!x) return "Média";
+  const low = x.toLowerCase();
+  if(low.includes("alta")) return "Alta";
+  if(low.includes("baixa")) return "Baixa";
+  return "Média";
+}
+function normalizeStatus(v){
+  const x = normalize(v);
+  if(!x) return "Em andamento";
+  const low = x.toLowerCase();
+  if(low.includes("val")) return "Em validação";
+  if(low.includes("pend")) return "Pendente";
+  if(low.includes("tram")) return "Tramitado";
+  if(low.includes("and")) return "Em andamento";
+  if(low.includes("conclu")) return "Tramitado";
+  return x;
+}
+
+/** THEME */
+const THEME_KEY = "cp_theme_v3";
+function applyTheme(theme){
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem(THEME_KEY, theme);
+}
+function initTheme(){
+  const saved = localStorage.getItem(THEME_KEY);
+  if(saved === "light" || saved === "dark") applyTheme(saved);
+}
+if($("btnTheme")) $("btnTheme").addEventListener("click", () => {
+  const current = document.documentElement.getAttribute("data-theme") || "dark";
+  applyTheme(current === "dark" ? "light" : "dark");
+});
+
+/** NAVEGAÇÃO */
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    document.querySelectorAll("main > section").forEach(s => s.classList.add("hidden"));
+    const target = $("page-" + t.dataset.page);
+    if(target){
+      target.classList.remove("hidden");
+      if(t.dataset.page.startsWith("dash")){
+        setTimeout(renderDashboards, 50);
+      }
+    }
+  });
+});
+
+/** INIT selects */
+function initFixedFields(){
+  $("f_setor").value = FIXED_SETOR;
+
+  const selHosp = $("f_hospital");
+  selHosp.innerHTML = "";
+  const ph = document.createElement("option");
+  ph.value = "";
+  ph.textContent = "Selecione um hospital...";
+  selHosp.appendChild(ph);
+
+  for(const h of HOSPITAIS){
+    const opt = document.createElement("option");
+    opt.value = h;
+    opt.textContent = h;
+    selHosp.appendChild(opt);
+  }
+
+  const agHosp = $("ag_hospital");
+  agHosp.innerHTML = "";
+  const ph2 = document.createElement("option");
+  ph2.value = "";
+  ph2.textContent = "Selecione um hospital...";
+  agHosp.appendChild(ph2);
+  for(const h of HOSPITAIS){
+    const opt = document.createElement("option");
+    opt.value = h;
+    opt.textContent = h;
+    agHosp.appendChild(opt);
+  }
+}
+
+/** FORM */
+function getForm(){
+  return {
+    numero_processo: normalize($("f_numero").value),
+    setor: FIXED_SETOR,
+    data: $("f_data").value || "",
+    hospital: $("f_hospital").value || "",
+    assunto: normalize($("f_assunto").value),
+    destino: normalize($("f_destino").value),
+    responsavel: normalize($("f_responsavel").value),
+    status: $("f_status").value || "Em andamento",
+    criticidade: $("f_criticidade").value || "Média"
+  };
+}
+function setForm(r){
+  $("f_numero").value = r?.numero_processo || "";
+  $("f_setor").value = FIXED_SETOR;
+  $("f_data").value = r?.data || "";
+  $("f_hospital").value = r?.hospital || "";
+  $("f_assunto").value = r?.assunto || "";
+  $("f_destino").value = r?.destino || "";
+  $("f_responsavel").value = r?.responsavel || "";
+  $("f_status").value = r?.status || "Em andamento";
+  $("f_criticidade").value = r?.criticidade || "Média";
+}
+function clearForm(){ setForm(null); }
+function validate(r){
+  if(!r.numero_processo) return "Informe o número do processo.";
+  if(!r.data) return "Informe a data.";
+  if(!r.hospital) return "Selecione o hospital.";
+  if(!r.assunto) return "Informe o assunto.";
+  if(!r.destino) return "Informe o destino.";
+  if(!r.responsavel) return "Informe o responsável.";
+  return null;
+}
+
+/** ✅ POPULA SELECT DE RESPONSÁVEIS */
+function renderResponsaveisSelect(){
+  const sel = $("selResponsavelWA");
+  if(!sel) return;
+
+  const responsaveis = Array.from(
+    new Set((data || [])
+      .map(r => normalize(r.responsavel))
+      .filter(Boolean))
+  ).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+
+  sel.innerHTML =
+    `<option value="">Todos os responsáveis</option>` +
+    responsaveis.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join("");
+}
+
+/** ✅ FILTRO ÚNICO (WHATSAPP): DATA + RESPONSÁVEL + BUSCA */
+function getFilteredForWhatsApp(){
+  let filtered = [...(data || [])];
+
+  // Busca (o que estiver digitado)
+  const q = normalize($("q")?.value).toLowerCase();
+  if(q){
+    filtered = filtered.filter(r => {
+      const blob = [
+        r.numero_processo, r.setor, r.data, r.hospital,
+        r.assunto, r.destino, r.responsavel, r.status, r.criticidade
+      ].join(" ").toLowerCase();
+      return blob.includes(q);
     });
+  }
+
+  // Responsável selecionado
+  const respSel = normalize($("selResponsavelWA")?.value);
+  if(respSel){
+    filtered = filtered.filter(r => normalize(r.responsavel) === respSel);
+  }
+
+  // Datas
+  const dataInicial = $("waDataInicial")?.value;
+  const dataFinal = $("waDataFinal")?.value;
+
+  if(dataInicial){
+    const di = new Date(dataInicial + "T00:00:00");
+    filtered = filtered.filter(r => r.data && new Date(r.data + "T00:00:00") >= di);
+  }
+  if(dataFinal){
+    const df = new Date(dataFinal + "T23:59:59");
+    filtered = filtered.filter(r => r.data && new Date(r.data + "T00:00:00") <= df);
+  }
+
+  return filtered;
+}
+
+/** AGENDAMENTOS HELPERS */
+function agLoadLocal(){
+  try{
+    const raw = localStorage.getItem(AG_LOCAL_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if(Array.isArray(parsed)) return parsed;
+  }catch{}
+  return [];
+}
+function agSaveLocal(list){
+  localStorage.setItem(AG_LOCAL_KEY, JSON.stringify(list || []));
+}
+function agSort(list){
+  return [...(list||[])].sort((a,b)=>{
+    const da = (a.data||"");
+    const db = (b.data||"");
+    if(db !== da) return db.localeCompare(da);
+    return (b.hora||"").localeCompare(a.hora||"");
+  });
+}
+function agNormalizeRow(r){
+  return {
+    id: r.id,
+    data: r.data || "",
+    hora: r.hora || "",
+    hospital: r.hospital || "",
+    responsavel: r.responsavel || "",
+    tipo: r.tipo || "Visita",
+    observacao: r.observacao || "",
+    realizada: !!r.realizada,
+    created_at: r.created_at || null,
+    updated_at: r.updated_at || null
+  };
+}
+function agTodayISO(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+/** SUPABASE */
+async function testConnection(){
+  try{
+    const { error } = await sb.from("processos").select("id").limit(1);
+    connBadge(!error);
+    if(error) console.error(error);
+  }catch(e){
+    connBadge(false);
+    console.error(e);
+  }
+}
+async function loadFromSupabase(){
+  setBusy(true);
+  try{
+    const { data: rows, error } = await sb
+      .from("processos")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if(error) throw error;
+
+    data = (rows || []).map(r => ({
+      ...r,
+      setor: FIXED_SETOR,
+      status: normalizeStatus(r.status),
+      criticidade: r.criticidade ? normalizeCrit(r.criticidade) : "Média"
+    }));
+
+    $("lastSync").textContent = `Última atualização: ${new Date().toLocaleString()}`;
+
+    // ✅ garante que o select puxe os responsáveis
+    renderResponsaveisSelect();
+
+    renderAll();
+  }catch(e){
+    console.error(e);
+    toast("Erro ao carregar do Supabase (RLS/Policies).");
+  }finally{
+    setBusy(false);
+  }
+}
+async function insertRecord(record){
+  const { data: row, error } = await sb.from("processos").insert({ ...record }).select("*").single();
+  if(error) throw error;
+  return row;
+}
+async function updateRecord(id, record){
+  const payload = { ...record, updated_at: new Date().toISOString() };
+  const { data: row, error } = await sb.from("processos").update(payload).eq("id", id).select("*").single();
+  if(error) throw error;
+  return row;
+}
+async function deleteRecord(id){
+  const { error } = await sb.from("processos").delete().eq("id", id);
+  if(error) throw error;
+}
+
+/** AGENDAMENTOS (Supabase com fallback local) */
+async function agTryLoadSupabase(){
+  try{
+    const { data: rows, error } = await sb
+      .from("agendamentos")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if(error) throw error;
+
+    agUseLocal = false;
+    agendamentos = (rows||[]).map(agNormalizeRow);
+  }catch(e){
+    console.warn("Agendamentos: fallback local (tabela/policies não disponíveis).", e);
+    agUseLocal = true;
+    agendamentos = agLoadLocal().map(agNormalizeRow);
+  }
+}
+async function agInsert(item){
+  if(agUseLocal){
+    const local = agLoadLocal();
+    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+    const row = agNormalizeRow({ ...item, id, realizada: false, created_at: new Date().toISOString() });
+    local.unshift(row);
+    agSaveLocal(local);
+    agendamentos = local.map(agNormalizeRow);
+    return row;
+  }
+  try{
+    const payload = { ...item, realizada: false };
+    const { data: row, error } = await sb.from("agendamentos").insert(payload).select("*").single();
+    if(error) throw error;
+    const normalized = agNormalizeRow(row);
+    agendamentos.unshift(normalized);
+    return normalized;
+  }catch(e){
+    console.warn("Falha ao inserir no Supabase, salvando localmente.", e);
+    agUseLocal = true;
+    return agInsert(item);
+  }
+}
+async function agToggleRealizada(id){
+  const current = agendamentos.find(x => x.id === id);
+  if(!current) return;
+  const newVal = !current.realizada;
+
+  if(agUseLocal){
+    const local = agLoadLocal().map(agNormalizeRow).map(x => x.id === id ? { ...x, realizada: newVal, updated_at: new Date().toISOString() } : x);
+    agSaveLocal(local);
+    agendamentos = local;
+    return;
+  }
+
+  try{
+    const { data: row, error } = await sb
+      .from("agendamentos")
+      .update({ realizada: newVal, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("*")
+      .single();
+    if(error) throw error;
+    const normalized = agNormalizeRow(row);
+    agendamentos = agendamentos.map(x => x.id === id ? normalized : x);
+  }catch(e){
+    console.warn("Falha ao atualizar no Supabase, atualizando localmente.", e);
+    agUseLocal = true;
+    await agToggleRealizada(id);
+  }
+}
+async function agDelete(id){
+  if(agUseLocal){
+    const local = agLoadLocal().map(agNormalizeRow).filter(x => x.id !== id);
+    agSaveLocal(local);
+    agendamentos = local;
+    return;
+  }
+  try{
+    const { error } = await sb.from("agendamentos").delete().eq("id", id);
+    if(error) throw error;
+    agendamentos = agendamentos.filter(x => x.id !== id);
+  }catch(e){
+    console.warn("Falha ao excluir no Supabase, excluindo localmente.", e);
+    agUseLocal = true;
+    await agDelete(id);
+  }
+}
+
+/** TABLE */
+function renderTable(){
+  const q = normalize($("q").value).toLowerCase();
+  const tbody = $("tbody");
+
+  const filtered = data.filter(r => {
+    if(!q) return true;
+    const blob = [
+      r.numero_processo, r.setor, r.data, r.hospital,
+      r.assunto, r.destino, r.responsavel, r.status, r.criticidade
+    ].join(" ").toLowerCase();
+    return blob.includes(q);
+  });
+
+  tbody.innerHTML = filtered.map(r => {
+    const canEdit = (r.status === "Em andamento");
+    const dot =
+      r.status === "Tramitado" ? "st-verde" :
+      r.status === "Em validação" ? "st-amarelo" :
+      r.status === "Em andamento" ? "st-amarelo" :
+      r.status === "Pendente" ? "st-vermelho" : "st-cinza";
+
+    return `
+      <tr>
+        <td><span class="chip">${esc(r.numero_processo)}</span></td>
+        <td>${esc(FIXED_SETOR)}</td>
+        <td>${esc(fmtDate(r.data))}</td>
+        <td>${esc(r.hospital)}</td>
+        <td>${esc(r.assunto)}</td>
+        <td>${esc(r.destino)}</td>
+        <td>${esc(r.responsavel)}</td>
+        <td><span class="status-dot ${dot}"></span>${esc(r.status)}</td>
+        <td>${esc(r.criticidade || "Média")}</td>
+        <td style="text-align:right;">
+          ${canEdit ? `<button class="ghost small" onclick="onEdit('${r.id}')">Editar</button>` : ``}
+          <button class="danger small" onclick="onDelete('${r.id}')">Excluir</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  $("countInfo").textContent = `Mostrando ${filtered.length} de ${data.length} registros.`;
+}
+
+/** AG TABLE */
+function renderAgTable(){
+  const tbody = $("tbodyAg");
+  const list = agSort(agendamentos);
+
+  tbody.innerHTML = list.map(a => `
+    <tr>
+      <td>${esc(fmtDate(a.data))}</td>
+      <td>${esc(a.hora || "")}</td>
+      <td>${esc(a.hospital || "")}</td>
+      <td>${esc(a.responsavel || "")}</td>
+      <td>${esc(a.tipo || "Visita")}</td>
+      <td>${a.realizada ? `<span class="chip ok">✅ Sim</span>` : `<span class="chip">⏳ Não</span>`}</td>
+      <td style="text-align:right;">
+        <button class="ghost small" onclick="onAgToggle('${a.id}')">${a.realizada ? "Desfazer" : "Concluir"}</button>
+        <button class="danger small" onclick="onAgDelete('${a.id}')">🗑️</button>
+      </td>
+    </tr>
+  `).join("");
+
+  renderVisitAlert();
+}
+
+function renderVisitAlert(){
+  const el = $("visitAlert");
+  const today = agTodayISO();
+
+  const upcoming = agendamentos
+    .filter(a => !!a.data)
+    .filter(a => !a.realizada)
+    .sort((a,b)=> (a.data||"").localeCompare(b.data||"") || (a.hora||"").localeCompare(b.hora||""));
+
+  const todayItems = upcoming.filter(a => a.data === today);
+  const nextItem = upcoming.find(a => a.data >= today);
+
+  if(todayItems.length){
+    const lines = todayItems.slice(0,3).map(a => `• ${a.tipo || "Visita"} - ${a.hospital || "(hospital)"}${a.hora ? " às " + a.hora : ""} (${a.responsavel || "sem responsável"})`);
+    el.innerHTML = `📌 <b>ALERTA:</b> Há visita/reunião <b>marcada para hoje (${fmtDate(today)})</b>:<br>${esc(lines.join("\n")).replaceAll("\n","<br>")}`;
+    el.classList.remove("hidden");
+    return;
+  }
+
+  if(nextItem && nextItem.data){
+    el.innerHTML = `📅 Próxima visita/reunião marcada para <b>${esc(fmtDate(nextItem.data))}</b>${nextItem.hora ? ` às <b>${esc(nextItem.hora)}</b>` : ""} — ${esc(nextItem.tipo || "Visita")} em <b>${esc(nextItem.hospital || "")}</b> (${esc(nextItem.responsavel || "sem responsável")}).`;
+    el.classList.remove("hidden");
+    return;
+  }
+
+  el.classList.add("hidden");
+}
+
+window.onEdit = (id) => {
+  const r = data.find(x => x.id === id);
+  if(!r) return;
+  if(r.status !== "Em andamento"){
+    toast("Só é permitido editar quando o status estiver 'Em andamento'.");
+    return;
+  }
+  editingId = id;
+  setForm(r);
+  $("editBanner").classList.remove("hidden");
+  document.querySelector('[data-page="cadastro"]').click();
+};
+
+window.onDelete = async (id) => {
+  const r = data.find(x => x.id === id);
+  if(!r) return;
+  if(!confirm(`Excluir o processo "${r.numero_processo}"?`)) return;
+
+  setBusy(true);
+  try{
+    await deleteRecord(id);
+    data = data.filter(x => x.id !== id);
+    if(editingId === id){
+      editingId = null;
+      $("editBanner").classList.add("hidden");
+      clearForm();
+    }
+    renderAll();
+  }catch(e){
+    console.error(e);
+    toast("Erro ao excluir (RLS/Policies).");
+  }finally{
+    setBusy(false);
+  }
+};
+
+window.onAgToggle = async (id) => {
+  setBusy(true);
+  try{
+    await agToggleRealizada(id);
+    renderAgTable();
+  }finally{
+    setBusy(false);
+  }
+};
+window.onAgDelete = async (id) => {
+  if(!confirm("Excluir este agendamento?")) return;
+  setBusy(true);
+  try{
+    await agDelete(id);
+    renderAgTable();
+  }finally{
+    setBusy(false);
+  }
+};
+
+async function onSave(){
+  const r = getForm();
+  const err = validate(r);
+  if(err){ toast(err); return; }
+
+  setBusy(true);
+  try{
+    if(editingId){
+      const current = data.find(x => x.id === editingId);
+      if(current && current.status !== "Em andamento"){
+        toast("Não foi possível salvar: o status não está mais 'Em andamento'.");
+        return;
+      }
+      const updated = await updateRecord(editingId, r);
+      data = data.map(x => x.id === editingId ? { ...updated, setor: FIXED_SETOR, criticidade: normalizeCrit(updated.criticidade||"Média"), status: normalizeStatus(updated.status)} : x);
+      editingId = null;
+      $("editBanner").classList.add("hidden");
+    }else{
+      const inserted = await insertRecord(r);
+      data.unshift({ ...inserted, setor: FIXED_SETOR, criticidade: normalizeCrit(inserted.criticidade||"Média"), status: normalizeStatus(inserted.status) });
+    }
+    clearForm();
+
+    // ✅ atualiza lista de responsáveis
+    renderResponsaveisSelect();
+
+    renderAll();
+    toast("Salvo com sucesso!");
+  }catch(e){
+    console.error(e);
+    toast("Erro ao salvar no Supabase (RLS/Policies).");
+  }finally{
+    setBusy(false);
+  }
+}
+function onCancelEdit(){
+  editingId = null;
+  $("editBanner").classList.add("hidden");
+  clearForm();
+}
+
+/** EXPORT CSV */
+function exportCSV(){
+  if(!data.length){ toast("Sem dados para exportar."); return; }
+  const headers = ["numero_processo","setor","data","hospital","assunto","destino","responsavel","status","criticidade"];
+  const lines = [
+    headers.join(","),
+    ...data.map(r => headers.map(h => {
+      const v = (r[h] ?? (h==="setor"?FIXED_SETOR:"")).toString().replaceAll('"','""');
+      return `"${v}"`;
+    }).join(","))
+  ];
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "processos.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** IMPORT EXCEL */
+function normalizeHeader(h){
+  return normalize(h).toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
+}
+function excelDateToISO(v){
+  if(typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) return v.trim();
+  if(v instanceof Date && !isNaN(v.getTime())){
+    const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,"0"), d=String(v.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+  if(typeof v === "number"){
+    const d = XLSX.SSF.parse_date_code(v);
+    if(d){
+      const y=d.y, m=String(d.m).padStart(2,"0"), day=String(d.d).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    }
+  }
+  if(typeof v === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(v.trim())){
+    const [dd,mm,yyyy]=v.trim().split("/");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return "";
+}
+async function importExcel(){
+  const f = $("fileXLSX").files[0];
+  if(!f) return toast("Selecione um arquivo Excel (.xlsx).");
+
+  setBusy(true);
+  try{
+    const buf = await f.arrayBuffer();
+    const wb = XLSX.read(buf, { type:"array" });
+
+    const sheetName = normalize($("sheetName").value) || wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    if(!ws) throw new Error("Aba não encontrada.");
+
+    const rows = XLSX.utils.sheet_to_json(ws, { header:1 });
+    if(rows.length < 2) throw new Error("Planilha vazia.");
+
+    const headers = rows[0].map(h => normalizeHeader(h));
+    const required = ["numero_processo","data","hospital","assunto","destino","responsavel","status","criticidade"];
+    for(const r of required){
+      if(!headers.includes(r)){
+        throw new Error(`Coluna obrigatória ausente: ${r}`);
+      }
+    }
+
+    const idx = Object.fromEntries(headers.map((h,i)=>[h,i]));
+    const inserts = [];
+
+    for(let i=1;i<rows.length;i++){
+      const row = rows[i];
+      if(!row || !row.length) continue;
+
+      const rec = {
+        numero_processo: normalize(row[idx.numero_processo]),
+        setor: FIXED_SETOR,
+        data: excelDateToISO(row[idx.data]),
+        hospital: normalize(row[idx.hospital]),
+        assunto: normalize(row[idx.assunto]),
+        destino: normalize(row[idx.destino]),
+        responsavel: normalize(row[idx.responsavel]),
+        status: normalizeStatus(row[idx.status]),
+        criticidade: normalizeCrit(row[idx.criticidade])
+      };
+      if(!rec.numero_processo || !rec.data || !rec.hospital) continue;
+      inserts.push(rec);
+    }
+
+    if(!inserts.length) throw new Error("Nenhum registro válido encontrado.");
+
+    const { error } = await sb.from("processos").insert(inserts);
+    if(error) throw error;
+
+    toast(`Importação concluída: ${inserts.length} registros.`);
+    loadFromSupabase();
+  }catch(e){
+    console.error(e);
+    toast("Erro ao importar Excel: " + (e.message || e));
+  }finally{
+    setBusy(false);
+  }
+}
+
+/** DASHBOARDS */
+function renderDashboards(){
+  renderDashGeral();
+  renderDashHospital();
+}
+function renderDashGeral(){
+  const total = data.length;
+  const tram = data.filter(r => r.status === "Tramitado").length;
+  const and = data.filter(r => r.status === "Em andamento").length;
+  const val = data.filter(r => r.status === "Em validação").length;
+  const pend = data.filter(r => r.status === "Pendente").length;
+
+  $("k_total").textContent = total;
+  $("k_tram").textContent = tram;
+  $("k_and").textContent = and;
+  $("k_val").textContent = val;
+  $("k_pend").textContent = pend;
+
+  const byStatus = {};
+  const byCrit = {};
+  const byHosp = {};
+  const byResp = {};
+
+  data.forEach(r => {
+    byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+    byCrit[r.criticidade || "Média"] = (byCrit[r.criticidade || "Média"] || 0) + 1;
+    byHosp[r.hospital] = (byHosp[r.hospital] || 0) + 1;
+    byResp[r.responsavel] = (byResp[r.responsavel] || 0) + 1;
+  });
+
+  const statusLabels = Object.keys(byStatus);
+  const statusValues = Object.values(byStatus);
+  const critLabels = Object.keys(byCrit);
+  const critValues = Object.values(byCrit);
+  const hospLabels = Object.keys(byHosp);
+  const hospValues = Object.values(byHosp);
+  const respLabels = Object.keys(byResp);
+  const respValues = Object.values(byResp);
+
+  if(pieStatus) pieStatus.destroy();
+  pieStatus = new Chart($("pieStatus"), {
+    type: "pie",
+    data: { labels: statusLabels, datasets: [{ data: statusValues }] },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+
+  if(pieCrit) pieCrit.destroy();
+  pieCrit = new Chart($("pieCrit"), {
+    type: "pie",
+    data: { labels: critLabels, datasets: [{ data: critValues }] },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+
+  if(barHosp) barHosp.destroy();
+  barHosp = new Chart($("barHospitais"), {
+    type: "bar",
+    data: { labels: hospLabels, datasets: [{ data: hospValues }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+
+  if(barResp) barResp.destroy();
+  barResp = new Chart($("barResponsaveis"), {
+    type: "bar",
+    data: { labels: respLabels, datasets: [{ data: respValues }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+}
+function renderDashHospital(){
+  const sel = $("selHospital");
+  if(!sel.options.length){
+    sel.innerHTML = `<option value="">Selecione um hospital...</option>` + HOSPITAIS.map(h=>`<option value="${esc(h)}">${esc(h)}</option>`).join("");
+  }
+
+  const hospital = sel.value;
+  const subset = hospital ? data.filter(r => r.hospital === hospital) : [];
+
+  $("h_total").textContent = subset.length;
+  $("h_and").textContent = subset.filter(r => r.status === "Em andamento").length;
+  $("h_val").textContent = subset.filter(r => r.status === "Em validação").length;
+  $("h_pend").textContent = subset.filter(r => r.status === "Pendente").length;
+  $("h_tram").textContent = subset.filter(r => r.status === "Tramitado").length;
+
+  const byCrit = {};
+  const byStatus = {};
+  subset.forEach(r => {
+    byCrit[r.criticidade || "Média"] = (byCrit[r.criticidade || "Média"] || 0) + 1;
+    byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+  });
+
+  const critLabels = Object.keys(byCrit);
+  const critValues = Object.values(byCrit);
+  const statusLabels = Object.keys(byStatus);
+  const statusValues = Object.values(byStatus);
+
+  if(pieHCrit) pieHCrit.destroy();
+  pieHCrit = new Chart($("pieHCrit"), {
+    type: "pie",
+    data: { labels: critLabels, datasets: [{ data: critValues }] },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+
+  if(pieHStatus) pieHStatus.destroy();
+  pieHStatus = new Chart($("pieHStatus"), {
+    type: "pie",
+    data: { labels: statusLabels, datasets: [{ data: statusValues }] },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+
+  const tbody = $("tbodyHospital");
+  tbody.innerHTML = subset.slice(0,50).map(r => `
+    <tr>
+      <td>${esc(fmtDate(r.data))}</td>
+      <td>${esc(r.numero_processo)}</td>
+      <td>${esc(FIXED_SETOR)}</td>
+      <td>${esc(r.assunto)}</td>
+      <td>${esc(r.destino)}</td>
+      <td>${esc(r.responsavel)}</td>
+      <td>${esc(r.status)}</td>
+      <td>${esc(r.criticidade || "Média")}</td>
+    </tr>
+  `).join("");
+}
+
+/** EVENTOS DOS BOTÕES */
+if($("btnSalvar")) $("btnSalvar").addEventListener("click", onSave);
+if($("btnCancelarEdicao")) $("btnCancelarEdicao").addEventListener("click", onCancelEdit);
+if($("btnLimpar")) $("btnLimpar").addEventListener("click", clearForm);
+if($("btnRecarregar")) $("btnRecarregar").addEventListener("click", loadFromSupabase);
+if($("q")) $("q").addEventListener("input", () => { renderTable(); });
+if($("btnExport")) $("btnExport").addEventListener("click", exportCSV);
+if($("btnImportExcel")) $("btnImportExcel").addEventListener("click", importExcel);
+
+// ✅ Se mudar responsável ou datas, o WhatsApp vai usar na exportação (sem precisar mexer na tabela)
+if($("selResponsavelWA")) $("selResponsavelWA").addEventListener("change", () => {});
+if($("waDataInicial")) $("waDataInicial").addEventListener("change", () => {});
+if($("waDataFinal")) $("waDataFinal").addEventListener("change", () => {});
+
+// Função para formatar data (yyyy-mm-dd -> dd/mm/yyyy)
+function formatDate(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("pt-BR");
+}
+
+// ✅ WhatsApp: EXPORTA APENAS O QUE FOI FILTRADO (data + responsável + busca)
+if ($("btnWhatsAppPreview")) $("btnWhatsAppPreview").addEventListener("click", () => {
+  const filtered = getFilteredForWhatsApp();
+
+  const statusEmoji = (status) => {
+    switch (status?.toLowerCase()) {
+      case "aprovado": return "✅ Aprovado";
+      case "pendente": return "⏳ Pendente";
+      case "negado": return "❌ Negado";
+      default: return `📌 ${status}`;
+    }
+  };
+
+  waMessageDraft = filtered.map((r, i) => 
+`📄 *Processo ${i + 1}*
+🏥 Hospital: ${r.hospital}
+🔢 Nº: ${r.numero_processo}
+📅 Data: ${formatDate(r.data)}
+📊 Status: ${statusEmoji(r.status)}`
+  ).join("\n\n");
+
+  if (!waMessageDraft) {
+    waMessageDraft = "⚠️ Nenhum registro encontrado para o filtro selecionado (data/responsável/busca).";
+  }
+
+  $("waPreviewText").value = waMessageDraft;
+  $("waCharCount").textContent = `${waMessageDraft.length} caracteres`;
+  $("waModal").classList.remove("hidden");
+});
+
+if ($("btnCloseWaModal")) $("btnCloseWaModal").addEventListener("click", () => $("waModal").classList.add("hidden"));
+
+if ($("btnCopyWa")) $("btnCopyWa").addEventListener("click", () => {
+  navigator.clipboard.writeText($("waPreviewText").value || "");
+  toast("✅ Texto copiado!");
+});
+
+if ($("btnOpenWa")) $("btnOpenWa").addEventListener("click", () => {
+  const phone = normalize($("waPhone").value);
+  const text = encodeURIComponent($("waPreviewText").value || "");
+  const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+  window.open(url, "_blank");
+});
+
+// Agendamento modal
+if($("btnAgendarVisita")) $("btnAgendarVisita").addEventListener("click", () => {
+  $("ag_data").value = agTodayISO();
+  $("ag_hora").value = "";
+  $("ag_hospital").value = "";
+  $("ag_responsavel").value = "";
+  $("ag_obs").value = "";
+  $("agModal").classList.remove("hidden");
+});
+if($("btnCloseAgModal")) $("btnCloseAgModal").addEventListener("click", () => $("agModal").classList.add("hidden"));
+if($("btnSaveAg")) $("btnSaveAg").addEventListener("click", async () => {
+  const item = {
+    data: $("ag_data").value || "",
+    hora: $("ag_hora").value || "",
+    hospital: $("ag_hospital").value || "",
+    responsavel: normalize($("ag_responsavel").value),
+    tipo: $("ag_tipo").value || "Visita",
+    observacao: normalize($("ag_obs").value)
+  };
+  if(!item.data || !item.hospital){
+    toast("Informe ao menos data e hospital.");
+    return;
+  }
+  setBusy(true);
+  try{
+    await agInsert(item);
+    renderAgTable();
+    $("agModal").classList.add("hidden");
+  }finally{
+    setBusy(false);
+  }
+});
+
+// Hospital select change
+if($("selHospital")) $("selHospital").addEventListener("change", renderDashHospital);
+
+/** INIT */
+function renderAll(){
+  renderResponsaveisSelect(); // ✅ garante sempre preenchido
+  renderTable();
+  renderAgTable();
+  renderDashboards();
+}
+initTheme();
+initFixedFields();
+testConnection();
+loadFromSupabase();
+agTryLoadSupabase().then(renderAgTable);
+renderAll();
 </script>
 
 </body>
