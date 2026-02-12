@@ -3,7 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Controle de Processos (Supabase + Excel)</title>
+  <title>GTEC Brasil - Controle de Processos</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -14,222 +19,218 @@
 
   <style>
     :root{
-      --bg0:#070c16; --bg1:#0b1220;
-      --card: rgba(17,26,46,.9);
-      --card2: rgba(10,18,38,.6);
-      --muted:#94a3b8; --text:#e5e7eb;
-      --accent:#22c55e; --danger:#ef4444; --warn:#f59e0b;
-      --line:#24324f; --chip:#0f1a33; --input:#0a1226;
-      --shadow: 0 10px 30px rgba(0,0,0,.25);
-      --headerbg: rgba(11,18,32,.85);
-      --overlay: rgba(0,0,0,.55);
+      --bg0:#0f172a; --bg1:#1e293b;
+      --card: #1e293b;
+      --card-border: #334155;
+      --muted:#94a3b8; --text:#f8fafc;
+      --accent:#10b981; --accent-hover:#059669;
+      --danger:#ef4444; --warn:#f59e0b;
+      --line:#334155; --chip:#0f172a; --input:#020617;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --headerbg: rgba(15, 23, 42, 0.85);
+      --overlay: rgba(0,0,0,.7);
+      --radius: 8px;
     }
     html[data-theme="light"]{
-      --bg0:#f6f8ff; --bg1:#eef2ff;
-      --card: rgba(255,255,255,.95);
-      --card2: rgba(255,255,255,.9);
-      --muted:#475569; --text:#0f172a;
-      --accent:#16a34a; --danger:#dc2626; --warn:#b45309;
-      --line:#d8dee9; --chip:#eef2ff; --input:#ffffff;
-      --shadow: 0 10px 25px rgba(2,6,23,.08);
-      --headerbg: rgba(255,255,255,.85);
-      --overlay: rgba(15,23,42,.35);
+      --bg0:#f1f5f9; --bg1:#e2e8f0;
+      --card: #ffffff;
+      --card-border: #cbd5e1;
+      --muted:#64748b; --text:#0f172a;
+      --accent:#059669; --accent-hover:#047857;
+      --danger:#dc2626; --warn:#d97706;
+      --line:#e2e8f0; --chip:#f1f5f9; --input:#ffffff;
+      --headerbg: rgba(255, 255, 255, 0.9);
+      --overlay: rgba(255,255,255,.5);
     }
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
-      background:linear-gradient(180deg,var(--bg0) 0%, var(--bg1) 35%, var(--bg1) 100%);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg0);
       color:var(--text);
+      line-height: 1.5;
     }
     header{
-      position:sticky; top:0; z-index:10;
-      background:var(--headerbg); backdrop-filter: blur(10px);
+      position:sticky; top:0; z-index:50;
+      background:var(--headerbg); backdrop-filter: blur(12px);
       border-bottom:1px solid var(--line);
+      padding: 0.75rem 0;
     }
-    .wrap{max-width:1200px; margin:0 auto; padding:16px;}
-    .topbar{display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;}
-    .brand{display:flex; align-items:center; gap:10px;}
+    .wrap{max-width:1280px; margin:0 auto; padding:0 1.5rem;}
+    .topbar{display:flex; gap:1rem; align-items:center; justify-content:space-between; flex-wrap:wrap;}
+    .brand{display:flex; align-items:center; gap:0.75rem;}
     .logo{
-      width:38px; height:38px; border-radius:12px;
-      background:rgba(34,197,94,.12);
-      border:1px solid rgba(34,197,94,.35);
-      display:grid; place-items:center; color:var(--accent);
-      font-weight:800;
+      width:40px; height:40px; border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      color: white;
+      display:grid; place-items:center;
+      font-weight:800; font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
-    .brand h1{font-size:16px; margin:0}
-    .brand p{margin:0; color:var(--muted); font-size:12px}
-    nav{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+    .brand h1{font-size:1.125rem; margin:0; font-weight: 700; letter-spacing: -0.025em;}
+    .brand p{margin:0; color:var(--muted); font-size:0.75rem; font-weight: 500;}
+    nav{display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; background: var(--chip); padding: 4px; border-radius: calc(var(--radius) + 4px); border: 1px solid var(--line);}
     .tab{
-      padding:10px 12px; border-radius:12px; border:1px solid var(--line);
-      background:transparent; color:var(--text); cursor:pointer; font-weight:600;
+      padding: 0.5rem 1rem; border-radius: var(--radius); border:none;
+      background:transparent; color:var(--muted); cursor:pointer; font-weight:600; font-size: 0.875rem;
+      transition: all 0.2s ease;
     }
-    .tab.active{background:rgba(34,197,94,.12); border-color:rgba(34,197,94,.35);}
-
-    main{padding:18px 0 40px;}
-    .grid{display:grid; gap:14px;}
+    .tab:hover { color: var(--text); }
+    .tab.active{background: var(--card); color:var(--accent); box-shadow: var(--shadow);}
+    main{padding: 2rem 0 4rem;}
+    .grid{display:grid; gap:1.5rem;}
     .grid.cols-2{grid-template-columns:repeat(1, minmax(0,1fr));}
     .grid.cols-3{grid-template-columns:repeat(2, minmax(0,1fr));}
-    @media (max-width:900px){ .grid.cols-2, .grid.cols-3{grid-template-columns:1fr;} }
-
+    @media (min-width: 1024px) { .grid.cols-2 { grid-template-columns: repeat(2, 1fr); } .grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 900px){ .grid.cols-3{grid-template-columns:1fr;} }
     .card{
       background:var(--card);
-      border:1px solid var(--line);
-      border-radius:20px;
+      border:1px solid var(--card-border);
+      border-radius: var(--radius);
       box-shadow: var(--shadow);
-      padding:16px;
+      padding: 1.5rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .card h2{margin:0 0 10px; font-size:14px}
-    .muted{color:var(--muted); font-size:12px}
-
-    label{display:block; font-size:12px; color:var(--muted); margin:8px 0 6px;}
+    .card h2{margin:0 0 0.5rem; font-size:1.1rem; font-weight: 600; color: var(--text);}
+    .muted{color:var(--muted); font-size:0.875rem;}
+    label{display:block; font-size:0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color:var(--muted); margin:0 0 0.5rem;}
     input, select, textarea{
       width:100%;
-      padding:11px 12px;
+      padding: 0.75rem;
       background:var(--input);
       border:1px solid var(--line);
-      border-radius:12px;
+      border-radius: var(--radius);
       color:var(--text);
       outline:none;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
     }
     input:focus, select:focus, textarea:focus{
-      border-color:rgba(34,197,94,.6);
-      box-shadow:0 0 0 3px rgba(34,197,94,.12);
+      border-color:var(--accent);
+      box-shadow:0 0 0 2px rgba(16, 185, 129, 0.2);
     }
-    input[readonly]{
-      opacity:.95;
-      cursor:not-allowed;
-    }
-
-    .row{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;}
+    input[readonly]{ opacity:0.7; cursor:not-allowed; background: var(--bg0); }
+    .row{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem;}
     @media (max-width:700px){ .row{grid-template-columns:1fr;} }
-
-    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;}
+    .actions{display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:1.5rem;}
     button{
-      padding:10px 12px;
-      border-radius:12px;
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius);
       border:1px solid var(--line);
-      background:var(--input);
+      background:var(--card);
       color:var(--text);
       cursor:pointer;
-      font-weight:700;
+      font-weight:600;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
     }
-    button.primary{background:rgba(34,197,94,.12); border-color:rgba(34,197,94,.35);}
-    button.danger{background:rgba(239,68,68,.10); border-color:rgba(239,68,68,.35);}
-    button.ghost{background:transparent;}
-    button:hover{filter:brightness(1.05);}
-    button:disabled{opacity:.6; cursor:not-allowed;}
-
-    table{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden;}
+    button.primary{background:var(--accent); border-color:var(--accent); color:white;}
+    button.primary:hover{background:var(--accent-hover); border-color:var(--accent-hover);}
+    button.danger{background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.3); color: var(--danger);}
+    button.danger:hover{background:rgba(239,68,68,0.2);}
+    button.ghost{background:transparent; border-color: transparent;}
+    button.ghost:hover{background: var(--bg0);}
+    button:active{transform: translateY(1px);}
+    button:disabled{opacity:0.5; cursor:not-allowed; transform: none;}
+    .table-container { border-radius: var(--radius); border: 1px solid var(--line); overflow: hidden; background: var(--card); }
+    table{width:100%; border-collapse:collapse; font-size: 0.875rem;}
     thead th{
-      text-align:left; font-size:12px; color:var(--muted);
-      padding:10px 10px; border-bottom:1px solid var(--line);
-      position:sticky; top:0; background:var(--card);
-      white-space:nowrap;
+      text-align:left; font-size:0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color:var(--muted);
+      padding: 1rem; border-bottom:1px solid var(--line);
+      background:var(--bg0);
+      position:sticky; top:0;
     }
-    tbody td{
-      padding:10px 10px; border-bottom:1px solid rgba(36,50,79,.35);
-      font-size:13px; vertical-align:top;
-    }
-    tbody tr:hover{background:rgba(127,127,127,.06);}
-
+    tbody td{ padding: 1rem; border-bottom:1px solid var(--line); vertical-align:middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover{background:var(--bg0);}
     .chip{
       display:inline-flex; align-items:center; gap:6px;
-      padding:4px 8px; border-radius:999px;
-      background:var(--chip);
-      border:1px solid rgba(148,163,184,.22);
-      font-size:12px;
+      padding: 0.25rem 0.75rem; border-radius:999px;
+      background:var(--bg0);
+      border:1px solid var(--line);
+      font-size:0.75rem; font-weight: 600;
       white-space:nowrap;
     }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .st-verde { background: var(--accent); }
+    .st-amarelo { background: var(--warn); }
+    .st-vermelho { background: var(--danger); }
+    .st-cinza { background: var(--muted); }
     .kpis{
       display:grid;
       grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
-      gap:12px;
+      gap:1rem;
     }
     .kpi{
-      padding:12px; border-radius:18px; border:1px solid var(--line);
-      background:var(--card2);
+      padding: 1.5rem; border-radius: var(--radius);
+      background:var(--card); border: 1px solid var(--line);
+      display: flex; flex-direction: column; justify-content: space-between;
     }
-    .kpi .v{font-size:20px; font-weight:900; margin-top:6px;}
-    .kpi .t{font-size:12px; color:var(--muted)}
-
+    .kpi .v{font-size:2rem; font-weight:800; line-height: 1; color: var(--text); margin-top: 0.5rem;}
+    .kpi .t{font-size:0.875rem; color:var(--muted); font-weight: 500;}
     .chart{
-      width:100%; height:260px;
-      border-radius:18px; border:1px solid var(--line);
-      background:var(--card2);
-      padding:10px;
+      width:100%; height:300px;
+      border-radius: var(--radius); border:1px solid var(--line);
+      background:var(--card);
+      padding:1rem;
       display:flex;
       flex-direction:column;
     }
-    .chart h3{margin:0 0 6px; font-size:13px;}
+    .chart h3{margin:0 0 1rem; font-size:0.875rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); text-align: center;}
     .chart canvas{flex:1;}
-
+    .right{display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+    .search{min-width:260px;}
+    .hidden{display:none !important;}
+    .divider{height:1px; background:var(--line); margin:1.5rem 0;}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 12px; border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--bg0);
+      font-size:0.75rem; color:var(--muted); font-weight: 500;
+    }
+    .ok{color:var(--accent)} .bad{color:var(--danger)}
+    .toolbar{
+      display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
+      margin-top:1rem;
+    }
+    .group{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;}
+    .modal-overlay{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display:flex; align-items:center; justify-content:center;
+      padding:1rem; z-index:9999;
+    }
+    .modal{
+      width:min(600px, 100%);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: calc(var(--radius) * 2);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      overflow:hidden; animation: popIn 0.2s ease-out;
+    }
+    @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 1.25rem; border-bottom:1px solid var(--line);
+    }
+    .modal-header h3{margin:0; font-size:1.125rem; font-weight: 600;}
+    .modal-body{padding: 1.25rem;}
+    .modal-footer{
+      display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:flex-end;
+      padding: 1.25rem; border-top:1px solid var(--line); background: var(--bg0);
+    }
+    textarea#waPreviewText{
+      min-height:200px; font-family: monospace; font-size: 0.875rem; line-height: 1.5;
+    }
     .notice{
       padding:10px 12px; border-radius:14px;
       background:rgba(245,158,11,.10);
       border:1px solid rgba(245,158,11,.30);
       color:inherit;
       font-size:12px;
-    }
-
-    .right{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
-    .search{min-width:260px;}
-    .hidden{display:none !important;}
-    .small{font-size:12px;}
-    .divider{height:1px; background:var(--line); margin:10px 0;}
-
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 10px; border-radius:999px;
-      border:1px solid rgba(148,163,184,.22);
-      background:rgba(10,18,38,.06);
-      font-size:12px; color:var(--muted);
-    }
-    html[data-theme="dark"] .pill{ background:rgba(10,18,38,.4); }
-    .ok{color:#16a34a}
-    .bad{color:#dc2626}
-
-    .toolbar{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
-      margin-top:10px;
-    }
-    .toolbar .group{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;}
-    .w240{min-width:240px;}
-    .w200{min-width:200px;}
-
-    .modal-overlay{
-      position:fixed; inset:0;
-      background:var(--overlay);
-      display:flex; align-items:center; justify-content:center;
-      padding:16px;
-      z-index:9999;
-    }
-    .modal{
-      width:min(820px, 100%);
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius:18px;
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .modal-header{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:12px 14px;
-      border-bottom:1px solid var(--line);
-    }
-    .modal-header h3{margin:0; font-size:14px;}
-    .modal-body{padding:14px;}
-    .modal-footer{
-      display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;
-      padding:12px 14px;
-      border-top:1px solid var(--line);
-    }
-    textarea#waPreviewText{
-      min-height:260px;
-      resize:vertical;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size:12px;
-      line-height:1.4;
     }
   </style>
 </head>
@@ -239,24 +240,25 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <div class="logo">CP</div>
+        <div class="logo">G</div>
         <div>
-          <h1>Controle de Processos</h1>
-          <p>Supabase + Importação Excel + Dashboards</p>
+          <h1>GTEC Brasil</h1>
+          <p>Controle de Processos</p>
         </div>
       </div>
 
       <div class="right">
-        <div class="pill" id="connStatus">Conexão: <b class="bad">não verificada</b></div>
-        <button id="btnTheme" class="ghost" title="Alternar tema">🌙/☀️ Tema</button>
-        <button id="btnGemini" class="ghost" title="Abrir Chat Gemini">🤖 Chat-Gemini</button>
+        <div class="pill" id="connStatus">Conexão: <b class="bad">...</b></div>
+        <button id="btnTheme" class="ghost" title="Alternar tema">🌓</button>
+        <button id="btnGemini" class="ghost" title="Abrir Chat Gemini">🤖 Chat-IA</button>
       </div>
 
       <nav>
         <button class="tab active" data-page="cadastro">Cadastro</button>
-        <button class="tab" data-page="registro">Registro</button>
+        <button class="tab" data-page="registro">Registros</button>
         <button class="tab" data-page="dash-geral">Dashboard Geral</button>
-        <button class="tab" data-page="dash-hospital">Dashboard por Hospital</button>
+        <button class="tab" data-page="dash-hospital">Dashboard Hospital</button>
+        <button class="tab" data-page="implantacao">Implantação</button>
       </nav>
     </div>
 
@@ -267,43 +269,53 @@
 
 <main class="wrap">
   <!-- ===================== REGISTRO ===================== -->
- <section id="page-registro" class="hidden grid cols-2">
+  <section id="page-registro" class="hidden grid">
     <div class="card">
-      <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
+      <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; margin-bottom: 1rem;">
         <div>
           <h2>Registros</h2>
           <p class="muted">Busca + exportação + ações.</p>
         </div>
-        <div class="right">
-          <input id="q" class="search" placeholder="Buscar por processo, hospital, responsável..." />
-          <button id="btnExport" title="Exporta CSV">Exportar CSV</button>
+
+        <div class="right" style="flex: 1;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:flex-end; width:100%;">
+            <div style="width:160px;">
+              <label>Data inicial</label>
+              <input id="waDataInicial" type="date" />
+            </div>
+            <div style="width:160px;">
+              <label>Data final</label>
+              <input id="waDataFinal" type="date" />
+            </div>
+
+            <input id="q" class="search" placeholder="🔍 Buscar por processo, hospital, responsável..." />
+            <button id="btnExport" class="ghost" title="Exporta CSV">⬇ CSV</button>
+          </div>
         </div>
       </div>
 
       <div class="toolbar">
         <div class="group">
-          <div class="w240">
+          <div style="min-width: 200px;">
             <label>Exportar por responsável</label>
             <select id="selResponsavelWA"></select>
           </div>
-          <div class="w200">
+          <div style="width: 150px;">
             <label>Telefone (opcional)</label>
-            <input id="waPhone" placeholder="55DDDNUMERO (sem +)" />
-            <div class="muted">Ex: 5591999999999</div>
+            <input id="waPhone" placeholder="5591..." />
           </div>
         </div>
         <div class="group">
-          <button id="btnAgendarVisita" class="ghost">📅 Agendar visita/reunião</button>
-          <button id="btnWhatsAppPreview" class="primary">Pré-visualizar</button>
+          <button id="btnAgendarVisita" class="ghost">📅 Agendar visita</button>
+          <button id="btnWhatsAppPreview" class="primary" style="background: #25D366; border-color: #25D366;">WhatsApp</button>
         </div>
       </div>
 
       <div class="divider"></div>
 
       <!-- TABELA DE AGENDAMENTOS -->
-      <h2 style="margin-top:0;">Agendamentos (visita/reunião)</h2>
-      <p class="muted">Lista do que foi agendado e se foi realizado.</p>
-      <div style="max-height:260px; overflow:auto; border-radius:14px; border:1px solid var(--line); margin-bottom:12px;">
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Agendamentos (visita/reunião)</h3>
+      <div class="table-container" style="max-height:200px; overflow:auto; margin-bottom:1.5rem;">
         <table>
           <thead>
             <tr>
@@ -313,14 +325,15 @@
               <th>Responsável</th>
               <th>Tipo</th>
               <th>Realizada</th>
-              <th style="width:200px;">Ações</th>
+              <th style="width:180px; text-align:right;">Ações</th>
             </tr>
           </thead>
           <tbody id="tbodyAg"></tbody>
         </table>
       </div>
 
-      <div style="max-height:520px; overflow:auto; border-radius:14px; border:1px solid var(--line);">
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Processos</h3>
+      <div class="table-container" style="max-height:500px; overflow:auto;">
         <table>
           <thead>
             <tr>
@@ -332,16 +345,16 @@
               <th>Destino</th>
               <th>Responsável</th>
               <th>Status</th>
-              <th>Criticidade</th>
-              <th style="width:190px;">Ações</th>
+              <th>Crit.</th>
+              <th style="width:160px; text-align:right;">Ações</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
 
-      <p class="muted" style="margin-top:10px;" id="countInfo"></p>
-      <p class="muted" id="lastSync"></p>
+      <p class="muted" style="margin-top:10px; text-align:right;" id="countInfo"></p>
+      <p class="muted" style="text-align:right;" id="lastSync"></p>
     </div>
   </section>
 
@@ -352,7 +365,7 @@
         <h2>Dashboard Geral</h2>
         <p class="muted">Resumo automático baseado nos registros do Supabase.</p>
 
-        <div class="kpis" style="margin-top:10px;">
+        <div class="kpis" style="margin-top:1rem;">
           <div class="kpi"><div class="t">Total</div><div class="v" id="k_total">0</div></div>
           <div class="kpi"><div class="t">Tramitados</div><div class="v" id="k_tram">0</div></div>
           <div class="kpi"><div class="t">Em andamento</div><div class="v" id="k_and">0</div></div>
@@ -374,10 +387,13 @@
   </section>
 
   <!-- ===================== CADASTRO ===================== -->
- <section id="page-cadastro" class="grid cols-2">
+  <section id="page-cadastro" class="grid cols-2">
     <div class="card">
-      <h2>Novo registro</h2>
-      <p class="muted">Setor fixo em <b>GTEC - Grupo Tecnico de Engenharia Clinica</b>.</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h2>Novo registro</h2>
+        <button class="ghost small" id="btnLimpar">Limpar</button>
+      </div>
+      <p class="muted">Setor fixo em <b>GTEC</b>.</p>
 
       <div class="row">
         <div>
@@ -436,51 +452,46 @@
             <option value="Média" selected>Média</option>
             <option value="Alta">Alta</option>
           </select>
-          <div class="muted">Entra no dashboard.</div>
         </div>
         <div>
           <label>&nbsp;</label>
-          <div class="pill">“Editar” só aparece se status = <b>Em andamento</b></div>
+          <div class="pill" style="width:100%; text-align:center;">Só edita se "Em andamento"</div>
         </div>
       </div>
 
-      <div class="actions">
-        <button class="primary" id="btnSalvar">Salvar</button>
-        <button class="ghost" id="btnLimpar">Limpar</button>
+      <div class="actions" style="justify-content:flex-end;">
         <button class="ghost" id="btnRecarregar" title="Recarrega do Supabase">Recarregar</button>
+        <button class="primary" id="btnSalvar">Salvar Registro</button>
       </div>
 
-      <div id="editBanner" class="notice hidden" style="margin-top:12px;">
-        Editando um registro (somente quando Status = <b>Em andamento</b>). Clique em <b>Salvar</b> para atualizar.
-        <button id="btnCancelarEdicao" class="ghost small" style="margin-left:10px;">Cancelar edição</button>
-      </div>
-
-      <div class="divider"></div>
-
-      <h2>Importar Excel (.xlsx)</h2>
-      <p class="muted">
-        Colunas (linha 1): <b>numero_processo, data, hospital, assunto, destino, responsavel, status, criticidade</b><br>
-        Observação: <b>setor é fixo</b> e será aplicado automaticamente como <b>GTEC - Grupo Tecnico de Engenharia Clinica</b>.
-      </p>
-
-      <div class="row">
-        <div>
-          <label>Arquivo Excel</label>
-          <input type="file" id="fileXLSX" accept=".xlsx,.xls" />
-        </div>
-        <div>
-          <label>Planilha/Aba</label>
-          <input id="sheetName" placeholder="Vazio = 1ª aba" />
-        </div>
-      </div>
-
-      <div class="actions">
-        <button id="btnImportExcel">Importar Excel para Supabase</button>
+      <div id="editBanner" class="notice hidden" style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+        <span>Editando registro.</span>
+        <button id="btnCancelarEdicao" class="ghost small">Cancelar</button>
       </div>
     </div>
 
+    <div class="card">
+      <h2>Importar Excel (.xlsx)</h2>
+      <p class="muted">
+        Colunas: <b>numero_processo, data, hospital, assunto, destino, responsavel, status, criticidade</b>.
+      </p>
+
+      <div style="margin-top:1.5rem; padding:1.5rem; border:2px dashed var(--line); border-radius:var(--radius); text-align:center;">
+        <input type="file" id="fileXLSX" accept=".xlsx,.xls" />
+      </div>
+
+      <div style="margin-top:1rem;">
+        <label>Planilha/Aba</label>
+        <input id="sheetName" placeholder="Vazio = 1ª aba" />
+      </div>
+
+      <div class="actions">
+        <button id="btnImportExcel" class="primary" style="width:100%;">Importar Excel para Supabase</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== DASH HOSPITAL ===================== -->
-   <!-- ===================== DASH HOSPITAL ===================== -->
   <section id="page-dash-hospital" class="hidden">
     <div class="grid">
       <div class="card">
@@ -511,8 +522,7 @@
 
       <div class="card">
         <h2>Últimos registros do hospital</h2>
-        <p class="muted">Ordenado por data (mais recente primeiro).</p>
-        <div style="max-height:420px; overflow:auto; border-radius:14px; border:1px solid var(--line); margin-top:10px;">
+        <div class="table-container" style="max-height:420px; overflow:auto; margin-top:10px;">
           <table>
             <thead>
               <tr>
@@ -522,6 +532,17 @@
             <tbody id="tbodyHospital"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== IMPLANTAÇÃO ===================== -->
+  <section id="page-implantacao" class="hidden">
+    <div class="card">
+      <h2>Implantação</h2>
+      <p class="muted">Área destinada ao controle de implantação.</p>
+      <div style="min-height: 400px; display:flex; align-items:center; justify-content:center; color:var(--muted);">
+        (Aguardando a equipe do bolo passar os dados para verificar se vai dar pra implantar nesse estilo de CODIGO)
       </div>
     </div>
   </section>
@@ -535,14 +556,14 @@
       <button class="ghost" id="btnCloseWaModal">✕</button>
     </div>
     <div class="modal-body">
-      <p class="muted" style="margin-top:0;">Edite antes de enviar ou copie para outro lugar.</p>
+      <p class="muted" style="margin-top:0;">Edite antes de enviar.</p>
       <label>Texto</label>
       <textarea id="waPreviewText"></textarea>
-      <div class="muted" id="waCharCount" style="margin-top:6px;"></div>
+      <div class="muted" id="waCharCount" style="margin-top:6px; text-align:right;"></div>
     </div>
     <div class="modal-footer">
       <button id="btnCopyWa" class="ghost">Copiar</button>
-      <button id="btnOpenWa" class="primary">Abrir WhatsApp</button>
+      <button id="btnOpenWa" class="primary" style="background:#25D366; border-color:#25D366;">Abrir WhatsApp</button>
     </div>
   </div>
 </div>
@@ -555,7 +576,7 @@
       <button class="ghost" id="btnCloseAgModal">✕</button>
     </div>
     <div class="modal-body">
-      <p class="muted" style="margin-top:0;">Registre data/hora e acompanhe se foi realizada.</p>
+      <p class="muted" style="margin-top:0;">Registre data/hora e acompanhe.</p>
 
       <div class="row">
         <div>
@@ -591,10 +612,6 @@
           <label>Observação (opcional)</label>
           <input id="ag_obs" placeholder="Ex: pauta, local, etc." />
         </div>
-      </div>
-
-      <div class="muted">
-        Observação: o sistema tenta salvar no Supabase (tabela <b>agendamentos</b>). Se não existir/políticas bloquearem, salva localmente no navegador.
       </div>
     </div>
     <div class="modal-footer">
@@ -653,7 +670,6 @@ const HOSPITAIS = [
   "POLICLÍNICA DE BREVES",
   "POLICLINICA DE CAPANEMA",
   "POLICLÍNICA DE MARABÁ",
-  "OUTRO",
   "POLICLÍNICA DE SANTARÉM"
 ];
 
@@ -677,8 +693,8 @@ const esc = (s) => (s ?? "").toString().replace(/[&<>"']/g, m => ({
 function normalize(s){ return (s ?? "").toString().trim(); }
 function toast(msg){ alert(msg); }
 function setBusy(isBusy){
-  ["btnSalvar","btnLimpar","btnRecarregar","btnImportExcel","btnExport","btnWhatsAppPreview","btnAgendarVisita","btnSaveAg"].forEach(id=>{
-    const el = $(id); if(el) el.disabled = isBusy;
+  document.querySelectorAll("main button, .modal button").forEach(b => {
+    b.disabled = isBusy;
   });
 }
 function fmtDate(iso){
@@ -720,10 +736,26 @@ function initTheme(){
   const saved = localStorage.getItem(THEME_KEY);
   if(saved === "light" || saved === "dark") applyTheme(saved);
 }
-function toggleTheme(){
+if($("btnTheme")) $("btnTheme").addEventListener("click", () => {
   const current = document.documentElement.getAttribute("data-theme") || "dark";
   applyTheme(current === "dark" ? "light" : "dark");
-}
+});
+
+/** NAVEGAÇÃO */
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    document.querySelectorAll("main > section").forEach(s => s.classList.add("hidden"));
+    const target = $("page-" + t.dataset.page);
+    if(target){
+      target.classList.remove("hidden");
+      if(t.dataset.page.startsWith("dash")){
+        setTimeout(renderDashboards, 50);
+      }
+    }
+  });
+});
 
 /** INIT selects */
 function initFixedFields(){
@@ -743,7 +775,6 @@ function initFixedFields(){
     selHosp.appendChild(opt);
   }
 
-  // agendamento: hospital
   const agHosp = $("ag_hospital");
   agHosp.innerHTML = "";
   const ph2 = document.createElement("option");
@@ -792,6 +823,60 @@ function validate(r){
   if(!r.destino) return "Informe o destino.";
   if(!r.responsavel) return "Informe o responsável.";
   return null;
+}
+
+/** ✅ POPULA SELECT DE RESPONSÁVEIS */
+function renderResponsaveisSelect(){
+  const sel = $("selResponsavelWA");
+  if(!sel) return;
+
+  const responsaveis = Array.from(
+    new Set((data || [])
+      .map(r => normalize(r.responsavel))
+      .filter(Boolean))
+  ).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+
+  sel.innerHTML =
+    `<option value="">Todos os responsáveis</option>` +
+    responsaveis.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join("");
+}
+
+/** ✅ FILTRO ÚNICO (WHATSAPP): DATA + RESPONSÁVEL + BUSCA */
+function getFilteredForWhatsApp(){
+  let filtered = [...(data || [])];
+
+  // Busca (o que estiver digitado)
+  const q = normalize($("q")?.value).toLowerCase();
+  if(q){
+    filtered = filtered.filter(r => {
+      const blob = [
+        r.numero_processo, r.setor, r.data, r.hospital,
+        r.assunto, r.destino, r.responsavel, r.status, r.criticidade
+      ].join(" ").toLowerCase();
+      return blob.includes(q);
+    });
+  }
+
+  // Responsável selecionado
+  const respSel = normalize($("selResponsavelWA")?.value);
+  if(respSel){
+    filtered = filtered.filter(r => normalize(r.responsavel) === respSel);
+  }
+
+  // Datas
+  const dataInicial = $("waDataInicial")?.value;
+  const dataFinal = $("waDataFinal")?.value;
+
+  if(dataInicial){
+    const di = new Date(dataInicial + "T00:00:00");
+    filtered = filtered.filter(r => r.data && new Date(r.data + "T00:00:00") >= di);
+  }
+  if(dataFinal){
+    const df = new Date(dataFinal + "T23:59:59");
+    filtered = filtered.filter(r => r.data && new Date(r.data + "T00:00:00") <= df);
+  }
+
+  return filtered;
 }
 
 /** AGENDAMENTOS HELPERS */
@@ -865,6 +950,10 @@ async function loadFromSupabase(){
     }));
 
     $("lastSync").textContent = `Última atualização: ${new Date().toLocaleString()}`;
+
+    // ✅ garante que o select puxe os responsáveis
+    renderResponsaveisSelect();
+
     renderAll();
   }catch(e){
     console.error(e);
@@ -911,18 +1000,12 @@ async function agInsert(item){
   if(agUseLocal){
     const local = agLoadLocal();
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
-    const row = agNormalizeRow({
-      ...item,
-      id,
-      realizada: false,
-      created_at: new Date().toISOString()
-    });
+    const row = agNormalizeRow({ ...item, id, realizada: false, created_at: new Date().toISOString() });
     local.unshift(row);
     agSaveLocal(local);
     agendamentos = local.map(agNormalizeRow);
     return row;
   }
-
   try{
     const payload = { ...item, realizada: false };
     const { data: row, error } = await sb.from("agendamentos").insert(payload).select("*").single();
@@ -933,24 +1016,12 @@ async function agInsert(item){
   }catch(e){
     console.warn("Falha ao inserir no Supabase, salvando localmente.", e);
     agUseLocal = true;
-    const local = agLoadLocal();
-    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
-    const row = agNormalizeRow({
-      ...item,
-      id,
-      realizada: false,
-      created_at: new Date().toISOString()
-    });
-    local.unshift(row);
-    agSaveLocal(local);
-    agendamentos = local.map(agNormalizeRow);
-    return row;
+    return agInsert(item);
   }
 }
 async function agToggleRealizada(id){
   const current = agendamentos.find(x => x.id === id);
   if(!current) return;
-
   const newVal = !current.realizada;
 
   if(agUseLocal){
@@ -967,17 +1038,13 @@ async function agToggleRealizada(id){
       .eq("id", id)
       .select("*")
       .single();
-
     if(error) throw error;
-
     const normalized = agNormalizeRow(row);
     agendamentos = agendamentos.map(x => x.id === id ? normalized : x);
   }catch(e){
     console.warn("Falha ao atualizar no Supabase, atualizando localmente.", e);
     agUseLocal = true;
-    const local = agLoadLocal().map(agNormalizeRow).map(x => x.id === id ? { ...x, realizada: newVal, updated_at: new Date().toISOString() } : x);
-    agSaveLocal(local);
-    agendamentos = local;
+    await agToggleRealizada(id);
   }
 }
 async function agDelete(id){
@@ -987,7 +1054,6 @@ async function agDelete(id){
     agendamentos = local;
     return;
   }
-
   try{
     const { error } = await sb.from("agendamentos").delete().eq("id", id);
     if(error) throw error;
@@ -995,9 +1061,7 @@ async function agDelete(id){
   }catch(e){
     console.warn("Falha ao excluir no Supabase, excluindo localmente.", e);
     agUseLocal = true;
-    const local = agLoadLocal().map(agNormalizeRow).filter(x => x.id !== id);
-    agSaveLocal(local);
-    agendamentos = local;
+    await agDelete(id);
   }
 }
 
@@ -1017,6 +1081,12 @@ function renderTable(){
 
   tbody.innerHTML = filtered.map(r => {
     const canEdit = (r.status === "Em andamento");
+    const dot =
+      r.status === "Tramitado" ? "st-verde" :
+      r.status === "Em validação" ? "st-amarelo" :
+      r.status === "Em andamento" ? "st-amarelo" :
+      r.status === "Pendente" ? "st-vermelho" : "st-cinza";
+
     return `
       <tr>
         <td><span class="chip">${esc(r.numero_processo)}</span></td>
@@ -1026,9 +1096,9 @@ function renderTable(){
         <td>${esc(r.assunto)}</td>
         <td>${esc(r.destino)}</td>
         <td>${esc(r.responsavel)}</td>
-        <td>${esc(r.status)}</td>
+        <td><span class="status-dot ${dot}"></span>${esc(r.status)}</td>
         <td>${esc(r.criticidade || "Média")}</td>
-        <td>
+        <td style="text-align:right;">
           ${canEdit ? `<button class="ghost small" onclick="onEdit('${r.id}')">Editar</button>` : ``}
           <button class="danger small" onclick="onDelete('${r.id}')">Excluir</button>
         </td>
@@ -1051,10 +1121,10 @@ function renderAgTable(){
       <td>${esc(a.hospital || "")}</td>
       <td>${esc(a.responsavel || "")}</td>
       <td>${esc(a.tipo || "Visita")}</td>
-      <td>${a.realizada ? `<span class="chip">✅ Sim</span>` : `<span class="chip">⏳ Não</span>`}</td>
-      <td>
-        <button class="ghost small" onclick="onAgToggle('${a.id}')">${a.realizada ? "Marcar não realizada" : "Marcar realizada"}</button>
-        <button class="danger small" onclick="onAgDelete('${a.id}')">Excluir</button>
+      <td>${a.realizada ? `<span class="chip ok">✅ Sim</span>` : `<span class="chip">⏳ Não</span>`}</td>
+      <td style="text-align:right;">
+        <button class="ghost small" onclick="onAgToggle('${a.id}')">${a.realizada ? "Desfazer" : "Concluir"}</button>
+        <button class="danger small" onclick="onAgDelete('${a.id}')">🗑️</button>
       </td>
     </tr>
   `).join("");
@@ -1076,7 +1146,7 @@ function renderVisitAlert(){
 
   if(todayItems.length){
     const lines = todayItems.slice(0,3).map(a => `• ${a.tipo || "Visita"} - ${a.hospital || "(hospital)"}${a.hora ? " às " + a.hora : ""} (${a.responsavel || "sem responsável"})`);
-    el.innerHTML = `📌 <b>ALERTA:</b> Há visita/reunião <b>marcada para hoje (${fmtDate(today)})</b>:\n<br>${esc(lines.join("\n")).replaceAll("\n","<br>")}`;
+    el.innerHTML = `📌 <b>ALERTA:</b> Há visita/reunião <b>marcada para hoje (${fmtDate(today)})</b>:<br>${esc(lines.join("\n")).replaceAll("\n","<br>")}`;
     el.classList.remove("hidden");
     return;
   }
@@ -1100,7 +1170,7 @@ window.onEdit = (id) => {
   editingId = id;
   setForm(r);
   $("editBanner").classList.remove("hidden");
-  goPage("registro");
+  document.querySelector('[data-page="cadastro"]').click();
 };
 
 window.onDelete = async (id) => {
@@ -1126,7 +1196,6 @@ window.onDelete = async (id) => {
   }
 };
 
-/** Agendamentos actions */
 window.onAgToggle = async (id) => {
   setBusy(true);
   try{
@@ -1169,6 +1238,10 @@ async function onSave(){
       data.unshift({ ...inserted, setor: FIXED_SETOR, criticidade: normalizeCrit(inserted.criticidade||"Média"), status: normalizeStatus(inserted.status) });
     }
     clearForm();
+
+    // ✅ atualiza lista de responsáveis
+    renderResponsaveisSelect();
+
     renderAll();
     toast("Salvo com sucesso!");
   }catch(e){
@@ -1178,14 +1251,9 @@ async function onSave(){
     setBusy(false);
   }
 }
-
 function onCancelEdit(){
   editingId = null;
   $("editBanner").classList.add("hidden");
-  clearForm();
-}
-function onClear(){
-  onCancelEdit();
   clearForm();
 }
 
@@ -1241,227 +1309,171 @@ async function importExcel(){
     const buf = await f.arrayBuffer();
     const wb = XLSX.read(buf, { type:"array" });
 
-    const preferred = normalize($("sheetName").value);
-    const sheet = preferred && wb.Sheets[preferred] ? wb.Sheets[preferred] : wb.Sheets[wb.SheetNames[0]];
-    if(!sheet) throw new Error("Aba não encontrada.");
+    const sheetName = normalize($("sheetName").value) || wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    if(!ws) throw new Error("Aba não encontrada.");
 
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-    if(!rows.length) return toast("Planilha vazia.");
+    const rows = XLSX.utils.sheet_to_json(ws, { header:1 });
+    if(rows.length < 2) throw new Error("Planilha vazia.");
 
-    const normalizedRows = rows.map(r=>{
-      const out = {};
-      for(const k of Object.keys(r)) out[normalizeHeader(k)] = r[k];
-      return out;
-    });
-
-    const payload = normalizedRows.map(r => ({
-      numero_processo: normalize(r.numero_processo),
-      setor: FIXED_SETOR,
-      data: excelDateToISO(r.data),
-      hospital: normalize(r.hospital),
-      assunto: normalize(r.assunto),
-      destino: normalize(r.destino),
-      responsavel: normalize(r.responsavel),
-      status: normalizeStatus(r.status),
-      criticidade: normalizeCrit(r.criticidade)
-    })).filter(r => r.numero_processo);
-
-    if(!payload.length) return toast("Nenhuma linha válida. Verifique colunas e dados.");
-
-    const invalid = payload.find(p => !p.data || !p.hospital || !p.assunto || !p.destino || !p.responsavel);
-    if(invalid){
-      return toast("Há linhas faltando campos obrigatórios (data/hospital/assunto/destino/responsavel).");
-    }
-
-    const badHosp = payload.find(p => !HOSPITAIS.includes(p.hospital));
-    if(badHosp){
-      return toast(`Hospital inválido na planilha: "${badHosp.hospital}". Use exatamente um nome da lista.`);
-    }
-
-    const chunkSize = 300;
-    let insertedTotal = 0;
-
-    for(let i=0; i<payload.length; i+=chunkSize){
-      const chunk = payload.slice(i, i+chunkSize);
-      const { data: inserted, error } = await sb.from("processos").insert(chunk).select("*");
-      if(error) throw error;
-
-      insertedTotal += (inserted?.length || 0);
-      if(inserted?.length){
-        data = [...inserted.map(x => ({
-          ...x,
-          setor: FIXED_SETOR,
-          status: normalizeStatus(x.status),
-          criticidade: normalizeCrit(x.criticidade || "Média")
-        })), ...data];
+    const headers = rows[0].map(h => normalizeHeader(h));
+    const required = ["numero_processo","data","hospital","assunto","destino","responsavel","status","criticidade"];
+    for(const r of required){
+      if(!headers.includes(r)){
+        throw new Error(`Coluna obrigatória ausente: ${r}`);
       }
     }
 
-    renderAll();
-    toast(`Importação concluída: ${insertedTotal} registros inseridos no Supabase.`);
+    const idx = Object.fromEntries(headers.map((h,i)=>[h,i]));
+    const inserts = [];
+
+    for(let i=1;i<rows.length;i++){
+      const row = rows[i];
+      if(!row || !row.length) continue;
+
+      const rec = {
+        numero_processo: normalize(row[idx.numero_processo]),
+        setor: FIXED_SETOR,
+        data: excelDateToISO(row[idx.data]),
+        hospital: normalize(row[idx.hospital]),
+        assunto: normalize(row[idx.assunto]),
+        destino: normalize(row[idx.destino]),
+        responsavel: normalize(row[idx.responsavel]),
+        status: normalizeStatus(row[idx.status]),
+        criticidade: normalizeCrit(row[idx.criticidade])
+      };
+      if(!rec.numero_processo || !rec.data || !rec.hospital) continue;
+      inserts.push(rec);
+    }
+
+    if(!inserts.length) throw new Error("Nenhum registro válido encontrado.");
+
+    const { error } = await sb.from("processos").insert(inserts);
+    if(error) throw error;
+
+    toast(`Importação concluída: ${inserts.length} registros.`);
+    loadFromSupabase();
   }catch(e){
     console.error(e);
-    toast("Erro ao importar Excel (RLS/Policies).");
+    toast("Erro ao importar Excel: " + (e.message || e));
   }finally{
     setBusy(false);
   }
 }
 
-/** DASH */
-function mapCounts(list, field){
-  const m = new Map();
-  for(const r of list){
-    const k = normalize(r[field]) || "(vazio)";
-    m.set(k, (m.get(k)||0)+1);
-  }
-  const entries = [...m.entries()].sort((a,b)=>b[1]-a[1]);
-  return { labels: entries.map(e=>e[0]), values: entries.map(e=>e[1]) };
-}
-function destroyIf(chart){ if(chart) chart.destroy(); return null; }
-function setKpis(){
-  $("k_total").textContent = data.length;
-  $("k_tram").textContent = data.filter(r => r.status === "Tramitado").length;
-  $("k_and").textContent  = data.filter(r => r.status === "Em andamento").length;
-  $("k_val").textContent  = data.filter(r => r.status === "Em validação").length;
-  $("k_pend").textContent = data.filter(r => r.status === "Pendente").length;
-}
-
+/** DASHBOARDS */
 function renderDashboards(){
-  setKpis();
-
-  const st = mapCounts(data, "status");
-  const cr = mapCounts(data, "criticidade");
-  const h  = mapCounts(data, "hospital");
-  const rp = mapCounts(data, "responsavel");
-
-  pieStatus = destroyIf(pieStatus);
-  pieCrit   = destroyIf(pieCrit);
-  barHosp   = destroyIf(barHosp);
-  barResp   = destroyIf(barResp);
-
-  const baseOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: true, position: "bottom" },
-      tooltip: { enabled: true },
-      title: { display: false }
-    }
-  };
-
-  if($("pieStatus")){
-    pieStatus = new Chart($("pieStatus"), {
-      type:"pie",
-      data:{ labels: st.labels, datasets:[{ label:"Status", data: st.values }] },
-      options: baseOptions
-    });
-  }
-  if($("pieCrit")){
-    pieCrit = new Chart($("pieCrit"), {
-      type:"pie",
-      data:{ labels: cr.labels, datasets:[{ label:"Criticidade", data: cr.values }] },
-      options: baseOptions
-    });
-  }
-  if($("barHospitais")){
-    const top = { labels: h.labels.slice(0,10), values: h.values.slice(0,10) };
-    barHosp = new Chart($("barHospitais"), {
-      type:"bar",
-      data:{ labels: top.labels, datasets:[{ label:"Hospitais", data: top.values }] },
-      options: {
-        ...baseOptions,
-        scales: {
-          x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 } },
-          y: { beginAtZero: true }
-        }
-      }
-    });
-  }
-  if($("barResponsaveis")){
-    const top = { labels: rp.labels.slice(0,10), values: rp.values.slice(0,10) };
-    barResp = new Chart($("barResponsaveis"), {
-      type:"bar",
-      data:{ labels: top.labels, datasets:[{ label:"Responsáveis", data: top.values }] },
-      options: {
-        ...baseOptions,
-        scales: {
-          x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 } },
-          y: { beginAtZero: true }
-        }
-      }
-    });
-  }
-
-  const sel = $("selHospital");
-  const hospitals = [...new Set(data.map(r => normalize(r.hospital)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-  sel.innerHTML = "";
-  const allOpt = document.createElement("option");
-  allOpt.value = "__ALL__";
-  allOpt.textContent = hospitals.length ? "Todos" : "Sem hospitais ainda";
-  sel.appendChild(allOpt);
-  for(const name of hospitals){
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.textContent = name;
-    sel.appendChild(opt);
-  }
-
+  renderDashGeral();
   renderDashHospital();
 }
+function renderDashGeral(){
+  const total = data.length;
+  const tram = data.filter(r => r.status === "Tramitado").length;
+  const and = data.filter(r => r.status === "Em andamento").length;
+  const val = data.filter(r => r.status === "Em validação").length;
+  const pend = data.filter(r => r.status === "Pendente").length;
 
+  $("k_total").textContent = total;
+  $("k_tram").textContent = tram;
+  $("k_and").textContent = and;
+  $("k_val").textContent = val;
+  $("k_pend").textContent = pend;
+
+  const byStatus = {};
+  const byCrit = {};
+  const byHosp = {};
+  const byResp = {};
+
+  data.forEach(r => {
+    byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+    byCrit[r.criticidade || "Média"] = (byCrit[r.criticidade || "Média"] || 0) + 1;
+    byHosp[r.hospital] = (byHosp[r.hospital] || 0) + 1;
+    byResp[r.responsavel] = (byResp[r.responsavel] || 0) + 1;
+  });
+
+  const statusLabels = Object.keys(byStatus);
+  const statusValues = Object.values(byStatus);
+  const critLabels = Object.keys(byCrit);
+  const critValues = Object.values(byCrit);
+  const hospLabels = Object.keys(byHosp);
+  const hospValues = Object.values(byHosp);
+  const respLabels = Object.keys(byResp);
+  const respValues = Object.values(byResp);
+
+  if(pieStatus) pieStatus.destroy();
+  pieStatus = new Chart($("pieStatus"), {
+    type: "pie",
+    data: { labels: statusLabels, datasets: [{ data: statusValues }] },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+
+  if(pieCrit) pieCrit.destroy();
+  pieCrit = new Chart($("pieCrit"), {
+    type: "pie",
+    data: { labels: critLabels, datasets: [{ data: critValues }] },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+
+  if(barHosp) barHosp.destroy();
+  barHosp = new Chart($("barHospitais"), {
+    type: "bar",
+    data: { labels: hospLabels, datasets: [{ data: hospValues }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+
+  if(barResp) barResp.destroy();
+  barResp = new Chart($("barResponsaveis"), {
+    type: "bar",
+    data: { labels: respLabels, datasets: [{ data: respValues }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+}
 function renderDashHospital(){
-  const sel = $("selHospital").value;
-  let list = data;
-  if(sel && sel !== "__ALL__") list = data.filter(r => normalize(r.hospital) === sel);
-
-  $("h_total").textContent = list.length;
-  $("h_and").textContent  = list.filter(r => r.status === "Em andamento").length;
-  $("h_val").textContent  = list.filter(r => r.status === "Em validação").length;
-  $("h_pend").textContent = list.filter(r => r.status === "Pendente").length;
-  $("h_tram").textContent = list.filter(r => r.status === "Tramitado").length;
-
-  const crit = mapCounts(list, "criticidade");
-  const st   = mapCounts(list, "status");
-
-  pieHCrit = destroyIf(pieHCrit);
-  pieHStatus = destroyIf(pieHStatus);
-
-  const baseOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: true, position: "bottom" },
-      tooltip: { enabled: true },
-      title: { display: false }
-    }
-  };
-
-  if($("pieHCrit")){
-    pieHCrit = new Chart($("pieHCrit"), {
-      type:"pie",
-      data:{ labels: crit.labels, datasets:[{ label:"Criticidade", data: crit.values }] },
-      options: baseOptions
-    });
-  }
-  if($("pieHStatus")){
-    pieHStatus = new Chart($("pieHStatus"), {
-      type:"pie",
-      data:{ labels: st.labels, datasets:[{ label:"Status", data: st.values }] },
-      options: baseOptions
-    });
+  const sel = $("selHospital");
+  if(!sel.options.length){
+    sel.innerHTML = `<option value="">Selecione um hospital...</option>` + HOSPITAIS.map(h=>`<option value="${esc(h)}">${esc(h)}</option>`).join("");
   }
 
-  const sorted = [...list].sort((a,b)=>{
-    if(!a.data && !b.data) return 0;
-    if(!a.data) return 1;
-    if(!b.data) return -1;
-    return (b.data||"").localeCompare(a.data||"");
-  }).slice(0, 50);
+  const hospital = sel.value;
+  const subset = hospital ? data.filter(r => r.hospital === hospital) : [];
 
-  $("tbodyHospital").innerHTML = sorted.map(r => `
+  $("h_total").textContent = subset.length;
+  $("h_and").textContent = subset.filter(r => r.status === "Em andamento").length;
+  $("h_val").textContent = subset.filter(r => r.status === "Em validação").length;
+  $("h_pend").textContent = subset.filter(r => r.status === "Pendente").length;
+  $("h_tram").textContent = subset.filter(r => r.status === "Tramitado").length;
+
+  const byCrit = {};
+  const byStatus = {};
+  subset.forEach(r => {
+    byCrit[r.criticidade || "Média"] = (byCrit[r.criticidade || "Média"] || 0) + 1;
+    byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+  });
+
+  const critLabels = Object.keys(byCrit);
+  const critValues = Object.values(byCrit);
+  const statusLabels = Object.keys(byStatus);
+  const statusValues = Object.values(byStatus);
+
+  if(pieHCrit) pieHCrit.destroy();
+  pieHCrit = new Chart($("pieHCrit"), {
+    type: "pie",
+    data: { labels: critLabels, datasets: [{ data: critValues }] },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+
+  if(pieHStatus) pieHStatus.destroy();
+  pieHStatus = new Chart($("pieHStatus"), {
+    type: "pie",
+    data: { labels: statusLabels, datasets: [{ data: statusValues }] },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+
+  const tbody = $("tbodyHospital");
+  tbody.innerHTML = subset.slice(0,50).map(r => `
     <tr>
       <td>${esc(fmtDate(r.data))}</td>
-      <td><span class="chip">${esc(r.numero_processo)}</span></td>
+      <td>${esc(r.numero_processo)}</td>
       <td>${esc(FIXED_SETOR)}</td>
       <td>${esc(r.assunto)}</td>
       <td>${esc(r.destino)}</td>
@@ -1472,130 +1484,82 @@ function renderDashHospital(){
   `).join("");
 }
 
-/** WhatsApp */
-function refreshResponsavelSelect(){
-  const sel = $("selResponsavelWA");
-  const responsaveis = [...new Set(data.map(r => normalize(r.responsavel)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-  sel.innerHTML = "";
-  const opt0 = document.createElement("option");
-  opt0.value = "__ALL__";
-  opt0.textContent = responsaveis.length ? "Todos os responsáveis" : "Sem dados";
-  sel.appendChild(opt0);
-  for(const name of responsaveis){
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.textContent = name;
-    sel.appendChild(opt);
-  }
+/** EVENTOS DOS BOTÕES */
+if($("btnSalvar")) $("btnSalvar").addEventListener("click", onSave);
+if($("btnCancelarEdicao")) $("btnCancelarEdicao").addEventListener("click", onCancelEdit);
+if($("btnLimpar")) $("btnLimpar").addEventListener("click", clearForm);
+if($("btnRecarregar")) $("btnRecarregar").addEventListener("click", loadFromSupabase);
+if($("q")) $("q").addEventListener("input", () => { renderTable(); });
+if($("btnExport")) $("btnExport").addEventListener("click", exportCSV);
+if($("btnImportExcel")) $("btnImportExcel").addEventListener("click", importExcel);
+
+// ✅ Se mudar responsável ou datas, o WhatsApp vai usar na exportação (sem precisar mexer na tabela)
+if($("selResponsavelWA")) $("selResponsavelWA").addEventListener("change", () => {});
+if($("waDataInicial")) $("waDataInicial").addEventListener("change", () => {});
+if($("waDataFinal")) $("waDataFinal").addEventListener("change", () => {});
+
+// Função para formatar data (yyyy-mm-dd -> dd/mm/yyyy)
+function formatDate(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("pt-BR");
 }
-function buildWhatsAppMessage(responsavel){
-  const list = responsavel === "__ALL__" ? data : data.filter(r => normalize(r.responsavel) === responsavel);
-  const agList = responsavel === "__ALL__"
-    ? agendamentos
-    : agendamentos.filter(a => normalize(a.responsavel) === responsavel);
 
-  if(!list.length && !agList.length) return "";
+// ✅ WhatsApp: EXPORTA APENAS O QUE FOI FILTRADO (data + responsável + busca)
+if ($("btnWhatsAppPreview")) $("btnWhatsAppPreview").addEventListener("click", () => {
+  const filtered = getFilteredForWhatsApp();
 
-  const title = responsavel === "__ALL__"
-    ? `📌 *Relatório de Processos (GTEC)*`
-    : `📌 *Relatório de Processos (GTEC) - ${responsavel}*`;
+  const statusEmoji = (status) => {
+    switch (status?.toLowerCase()) {
+      case "aprovado": return "✅ Aprovado";
+      case "pendente": return "⏳ Pendente";
+      case "negado": return "❌ Negado";
+      default: return `📌 ${status}`;
+    }
+  };
 
-  let msg = `${title}\n`;
+  waMessageDraft = filtered.map((r, i) => 
+`📄 *Processo ${i + 1}*
+🏥 Hospital: ${r.hospital}
+🔢 Nº: ${r.numero_processo}
+📅 Data: ${formatDate(r.data)}
+📊 Status: ${statusEmoji(r.status)}`
+  ).join("\n\n");
 
-  // processos
-  if(list.length){
-    const critOrder = (c) => c === "Alta" ? 3 : (c === "Média" ? 2 : 1);
-    const sorted = [...list].sort((a,b)=>{
-      const dc = critOrder(normalizeCrit(b.criticidade)) - critOrder(normalizeCrit(a.criticidade));
-      if(dc !== 0) return dc;
-      return (b.data||"").localeCompare(a.data||"");
-    });
-
-    const lines = sorted.slice(0, 80).map(r => {
-      const crit = normalizeCrit(r.criticidade);
-      return `• *${r.numero_processo}* | ${fmtDate(r.data)} | ${r.hospital}\n  Status: ${r.status} | Criticidade: *${crit}*\n  Assunto: ${r.assunto}\n  Destino: ${r.destino}`;
-    });
-
-    if(sorted.length > 80) lines.push(`\n(Mostrando 80 de ${sorted.length}. Exporte CSV para lista completa.)`);
-
-    msg += `\n\n${lines.join("\n\n")}`;
+  if (!waMessageDraft) {
+    waMessageDraft = "⚠️ Nenhum registro encontrado para o filtro selecionado (data/responsável/busca).";
   }
 
-  // agendamentos
-  if(agList.length){
-    const today = agTodayISO();
-    const sortedAg = [...agList]
-      .filter(a => !!a.data)
-      .sort((a,b)=> (a.data||"").localeCompare(b.data||"") || (a.hora||"").localeCompare(b.hora||""));
-
-    const agLines = sortedAg.slice(0, 40).map(a => {
-      const st = a.realizada ? "✅ Realizada" : (a.data === today ? "📌 HOJE" : "⏳ Pendente");
-      const when = `${fmtDate(a.data)}${a.hora ? " " + a.hora : ""}`;
-      const hosp = a.hospital ? ` | ${a.hospital}` : "";
-      const obs = a.observacao ? `\n  Obs: ${a.observacao}` : "";
-      return `• *${a.tipo || "Visita"}* | ${when}${hosp}\n  Status: ${st}${obs}`;
-    });
-
-    msg += `\n\n📅 *Agendamentos (visita/reunião)*\n\n${agLines.join("\n\n")}`;
-    if(sortedAg.length > 40) msg += `\n\n(Mostrando 40 de ${sortedAg.length} agendamentos.)`;
-  }
-
-  return msg.trim();
-}
-function openWaModal(message){
-  waMessageDraft = message || "";
   $("waPreviewText").value = waMessageDraft;
-  $("waCharCount").textContent = `Caracteres: ${waMessageDraft.length}`;
+  $("waCharCount").textContent = `${waMessageDraft.length} caracteres`;
   $("waModal").classList.remove("hidden");
-}
-function closeWaModal(){ $("waModal").classList.add("hidden"); }
-async function copyWaText(){
-  const txt = $("waPreviewText").value || "";
-  try{
-    await navigator.clipboard.writeText(txt);
-    toast("Texto copiado!");
-  }catch{
-    $("waPreviewText").select();
-    document.execCommand("copy");
-    toast("Texto copiado!");
-  }
-}
-function openWhatsAppFromModal(){
-  const msg = $("waPreviewText").value || "";
-  if(!msg.trim()) return toast("Mensagem vazia.");
+});
 
-  const phone = normalize($("waPhone").value).replace(/\D/g,"");
-  const encoded = encodeURIComponent(msg);
-  const url = phone ? `https://wa.me/${phone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
-  window.open(url, "_blank", "noopener,noreferrer");
-}
-function previewWhatsApp(){
-  const resp = $("selResponsavelWA").value;
-  const msg = buildWhatsAppMessage(resp);
-  if(!msg) return toast("Sem registros/agendamentos para esse responsável.");
-  openWaModal(msg);
-}
+if ($("btnCloseWaModal")) $("btnCloseWaModal").addEventListener("click", () => $("waModal").classList.add("hidden"));
 
-/** AG MODAL */
-function openAgModal(){
-  $("ag_data").value = "";
+if ($("btnCopyWa")) $("btnCopyWa").addEventListener("click", () => {
+  navigator.clipboard.writeText($("waPreviewText").value || "");
+  toast("✅ Texto copiado!");
+});
+
+if ($("btnOpenWa")) $("btnOpenWa").addEventListener("click", () => {
+  const phone = normalize($("waPhone").value);
+  const text = encodeURIComponent($("waPreviewText").value || "");
+  const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+  window.open(url, "_blank");
+});
+
+// Agendamento modal
+if($("btnAgendarVisita")) $("btnAgendarVisita").addEventListener("click", () => {
+  $("ag_data").value = agTodayISO();
   $("ag_hora").value = "";
   $("ag_hospital").value = "";
   $("ag_responsavel").value = "";
-  $("ag_tipo").value = "Visita";
   $("ag_obs").value = "";
   $("agModal").classList.remove("hidden");
-}
-function closeAgModal(){ $("agModal").classList.add("hidden"); }
-function agValidate(p){
-  if(!p.data) return "Informe a data do agendamento.";
-  if(!p.hospital) return "Selecione o hospital.";
-  if(!p.responsavel) return "Informe o responsável.";
-  if(!p.tipo) return "Selecione o tipo.";
-  return null;
-}
-async function saveAgendamento(){
-  const payload = {
+});
+if($("btnCloseAgModal")) $("btnCloseAgModal").addEventListener("click", () => $("agModal").classList.add("hidden"));
+if($("btnSaveAg")) $("btnSaveAg").addEventListener("click", async () => {
+  const item = {
     data: $("ag_data").value || "",
     hora: $("ag_hora").value || "",
     hospital: $("ag_hospital").value || "",
@@ -1603,88 +1567,37 @@ async function saveAgendamento(){
     tipo: $("ag_tipo").value || "Visita",
     observacao: normalize($("ag_obs").value)
   };
-  const err = agValidate(payload);
-  if(err) return toast(err);
-
+  if(!item.data || !item.hospital){
+    toast("Informe ao menos data e hospital.");
+    return;
+  }
   setBusy(true);
   try{
-    await agInsert(payload);
-    closeAgModal();
+    await agInsert(item);
     renderAgTable();
-    refreshResponsavelSelect();
-    toast("Agendamento salvo!");
-  }catch(e){
-    console.error(e);
-    toast("Erro ao salvar agendamento.");
+    $("agModal").classList.add("hidden");
   }finally{
     setBusy(false);
   }
-}
-
-/** NAV */
-function goPage(page){
-  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.page === page));
-  $("page-cadastro").classList.toggle("hidden", page !== "cadastro");
-  $("page-registro").classList.toggle("hidden", page !== "registro");
-  $("page-dash-geral").classList.toggle("hidden", page !== "dash-geral");
-  $("page-dash-hospital").classList.toggle("hidden", page !== "dash-hospital");
-  if(page !== "cadastro" && page !== "registro") renderDashboards();
-}
-document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => goPage(btn.dataset.page)));
-
-function renderAll(){
-  renderTable();
-  refreshResponsavelSelect();
-  renderDashboards();
-  renderAgTable();
-}
-
-/** EVENTS */
-$("btnTheme").addEventListener("click", toggleTheme);
-$("btnSalvar").addEventListener("click", onSave);
-$("btnLimpar").addEventListener("click", onClear);
-$("btnRecarregar").addEventListener("click", loadFromSupabase);
-$("btnCancelarEdicao").addEventListener("click", onCancelEdit);
-$("q").addEventListener("input", renderTable);
-$("btnExport").addEventListener("click", exportCSV);
-$("selHospital").addEventListener("change", renderDashHospital);
-$("btnImportExcel").addEventListener("click", importExcel);
-$("btnWhatsAppPreview").addEventListener("click", previewWhatsApp);
-
-$("btnCloseWaModal").addEventListener("click", closeWaModal);
-$("waModal").addEventListener("click", (e)=>{ if(e.target === $("waModal")) closeWaModal(); });
-$("waPreviewText").addEventListener("input", ()=>$("waCharCount").textContent = `Caracteres: ${($("waPreviewText").value||"").length}`);
-$("btnCopyWa").addEventListener("click", copyWaText);
-$("btnOpenWa").addEventListener("click", openWhatsAppFromModal);
-
-/** Agendamento events */
-$("btnAgendarVisita").addEventListener("click", openAgModal);
-$("btnCloseAgModal").addEventListener("click", closeAgModal);
-$("agModal").addEventListener("click", (e)=>{ if(e.target === $("agModal")) closeAgModal(); });
-$("btnSaveAg").addEventListener("click", saveAgendamento);
-
-/** CHAT GEMINI */
-$("btnGemini").addEventListener("click", () => {
-  window.open(
-    "https://gemini.google.com/app?hl=pt-BR",
-    "chat-gemini",
-    "width=420,height=640,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes"
-  );
 });
 
-/** START */
-(async function init(){
-  initTheme();
-  initFixedFields();
-  clearForm();
-  await testConnection();
-  await agTryLoadSupabase();
-  await loadFromSupabase();
+// Hospital select change
+if($("selHospital")) $("selHospital").addEventListener("change", renderDashHospital);
+
+/** INIT */
+function renderAll(){
+  renderResponsaveisSelect(); // ✅ garante sempre preenchido
+  renderTable();
   renderAgTable();
-})();
+  renderDashboards();
+}
+initTheme();
+initFixedFields();
+testConnection();
+loadFromSupabase();
+agTryLoadSupabase().then(renderAgTable);
+renderAll();
 </script>
+
 </body>
 </html>
-
-
-
