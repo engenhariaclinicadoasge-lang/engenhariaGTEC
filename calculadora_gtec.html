@@ -1,355 +1,232 @@
 <!doctype html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calculadora de Dimensionamento Hospitalar (RDC)</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora RDC</title>
 
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-  <!-- Supabase & Chart.js & PDF -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-  <style>
-    :root {
-      --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --muted: #94a3b8;
-      --accent: #10b981; --border: #334155; --input: #020617;
-    }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; line-height: 1.5; }
-    
-    .container { max-width: 1200px; margin: 0 auto; }
-    
-    /* Header */
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
-    h1 { margin: 0; font-size: 1.5rem; color: var(--accent); }
-    
-    /* Grid */
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-    
-    /* Card */
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-    .card h2 { margin-top: 0; font-size: 1.1rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-    
-    /* Inputs */
-    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 5px; }
-    input, select { width: 100%; padding: 10px; background: var(--input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); margin-bottom: 15px; }
-    input:focus { border-color: var(--accent); outline: none; }
-    
-    /* Buttons */
-    button { cursor: pointer; padding: 10px 20px; border-radius: 6px; font-weight: 600; border: none; transition: 0.2s; }
-    .btn-primary { background: var(--accent); color: white; width: 100%; }
-    .btn-primary:hover { filter: brightness(1.1); }
-    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-    
-    /* Result Table */
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th { text-align: left; color: var(--muted); font-size: 0.8rem; padding: 10px; border-bottom: 1px solid var(--border); }
-    td { padding: 10px; border-bottom: 1px solid #334155; }
-    .qty { font-weight: bold; color: var(--accent); font-size: 1.1rem; }
-    
-    /* Tabs */
-    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-    .tab { background: var(--card); color: var(--muted); padding: 10px 20px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); }
-    .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
-    
-    .hidden { display: none; }
-    .badge { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 5px; }
-  </style>
+<style>
+body { font-family: Arial; background:#0f172a; color:white; padding:20px }
+.card { background:#1e293b; padding:20px; border-radius:8px; margin-bottom:20px }
+input, select { width:100%; padding:8px; margin-bottom:10px }
+button { padding:10px; cursor:pointer; background:#10b981; color:white; border:none; border-radius:5px }
+button:hover { opacity:0.9 }
+table { width:100%; margin-top:10px; border-collapse: collapse }
+td, th { padding:8px; border-bottom:1px solid #334155 }
+.badge { background:#334155; padding:3px 6px; border-radius:4px }
+.qty { color:#10b981; font-weight:bold }
+.top-bar { display:flex; justify-content:space-between; align-items:center }
+</style>
 </head>
+
 <body>
 
-<div class="container">
-  <header>
-    <div>
-      <h1>🏥 Calculadora RDC</h1>
-      <p style="color: var(--muted); margin:0;">Dimensionamento de Equipamentos Hospitalares</p>
-    </div>
-    <div style="text-align: right;">
-       
-    </div>
-  </header>
+<div class="card">
+<h2>Parâmetros</h2>
 
-  <!-- CONFIG MODAL (Supabase) -->
-  <div id="configPanel" class="card hidden" style="margin-bottom: 20px; border-color: var(--accent);">
-      <h2>Conexão com Banco de Dados</h2>
-      <p style="font-size: 0.9rem; color: var(--muted);">Insira as credenciais do seu Supabase para salvar novas regras.</p>
-      <div class="grid">
-          <div><label>Supabase URL</label><input id="sbUrl" placeholder="https://xyz.supabase.co"></div>
-          <div><label>Supabase Key (Anon/Service)</label><input id="sbKey" type="password" placeholder="eyJh..."></div>
-      </div>
-      <button class="btn-primary" onclick="saveConfig()">Salvar Conexão</button>
-  </div>
+<label>Enfermaria</label>
+<input type="number" id="n_enf" value="0" oninput="calcular()">
 
-  <div class="tabs">
-    <div class="tab active" onclick="showTab('calc')">🧮 Calculadora</div>
-    <div class="tab" onclick="showTab('colab')">🧠 Base de Conhecimento (Colaborativo)</div>
-  </div>
+<label>UTI</label>
+<input type="number" id="n_uti" value="0" oninput="calcular()">
 
-  <!-- ABA CALCULADORA -->
-  <div id="tab-calc">
-      <div class="grid" style="grid-template-columns: 300px 1fr;">
-        <!-- INPUTS -->
-        <div class="card">
-          <h2>Parâmetros (Leitos/Salas)</h2>
-          
-          <label>Enfermaria (Geral)</label>
-          <input type="number" id="n_enf" value="0" min="0" oninput="calcular()">
-          
-          <label>UTI Adulto</label>
-          <input type="number" id="n_uti_a" value="0" min="0" oninput="calcular()">
-          
-          <label>UTI Neonatal</label>
-          <input type="number" id="n_uti_n" value="0" min="0" oninput="calcular()">
-          
-          <label>Centro Cirúrgico (Salas)</label>
-          <input type="number" id="n_cc" value="0" min="0" oninput="calcular()">
-          
-          <label>Emergência (Leitos Observação)</label>
-          <input type="number" id="n_emerg" value="0" min="0" oninput="calcular()">
+<label>Centro Cirúrgico</label>
+<input type="number" id="n_cc" value="0" oninput="calcular()">
 
-          <button class="btn-primary" style="background-color: #16a34a;" onclick="exportToExcel()">📊 Exportar Excel</button>
-        </div>
-
-        <!-- OUTPUT -->
-        <div class="card" id="report">
-          <div style="display: flex; justify-content: space-between;">
-              <h2>📋 Quantitativo Estimado</h2>
-              <div id="totalCost" style="color: var(--accent); font-weight: bold;"></div>
-          </div>
-          
-          <table id="resultTable">
-            <thead>
-              <tr>
-                <th>Equipamento</th>
-                <th>Setor</th>
-                <th>Regra RDC</th>
-                <th>Qtd. Necessária</th>
-              </tr>
-            </thead>
-            <tbody id="tbodyResults">
-              <!-- JS preenche aqui -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-  </div>
-
-  <!-- ABA COLABORATIVA -->
-  <div id="tab-colab" class="hidden">
-      <div class="card">
-          <h2>🧠 Ensinar Nova Regra ao Sistema</h2>
-          <p style="color: var(--muted);">Cadastre equipamentos que não estão na lista padrão. Isso ficará salvo no banco para todos.</p>
-          
-          <div class="grid" style="grid-template-columns: 1fr 1fr 1fr;">
-              <div><label>Equipamento</label><input id="new_eq" placeholder="Ex: Tomógrafo" oninput="this.value = this.value.toUpperCase()"></div>
-              <div><label>Setor Alvo</label><input id="new_setor" placeholder="Ex: UTI PEDIÁTRICA" list="setores_sugeridos" oninput="this.value = this.value.toUpperCase()">
-                  <datalist id="setores_sugeridos">
-                      <option value="UTI">
-                      <option value="ENFERMARIA">
-                      <option value="CENTRO CIRÚRGICO">
-                      <option value="IMAGEM">
-                      <option value="GERAL">
-                  </datalist>
-              </div>
-              <div>
-                  <label>Regra de Cálculo</label>
-                  <select id="new_regra">
-                      <option value="1/leito">1 por Leito</option>
-                      <option value="1/sala">1 por Sala</option>
-                      <option value="1/unidade">1 por Unidade (Setor)</option>
-                      <option value="1/10">1 a cada 10 leitos</option>
-                      <option value="fixo">Quantidade Fixa (1)</option>
-                  </select>
-              </div>
-          </div>
-          <button class="btn-primary" onclick="addRule()">💾 Salvar Nova Regra no Banco</button>
-      </div>
-
-      <div class="card" style="margin-top: 20px;">
-          <h2>Regras da Comunidade (Banco de Dados)</h2>
-          <div id="dbRulesList" style="color: var(--muted);">Conecte ao Supabase para ver...</div>
-      </div>
-  </div>
+<label>Emergência</label>
+<input type="number" id="n_emerg" value="0" oninput="calcular()">
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<div class="card">
+
+<div class="top-bar">
+<h2>Resultado</h2>
+<button onclick="exportarExcel()">📊 Exportar Excel</button>
+</div>
+
+<table id="resultTable">
+<thead>
+<tr>
+<th>Equipamento</th>
+<th>Setor</th>
+<th>Regra</th>
+<th>Qtd</th>
+</tr>
+</thead>
+<tbody id="tbodyResults"></tbody>
+</table>
+
+</div>
+
+<div class="card">
+<h2>Nova Regra</h2>
+
+<input id="new_eq" placeholder="Equipamento">
+<input id="new_setor" placeholder="Setor">
+
+<select id="new_regra">
+<option value="1/leito">1/leito</option>
+<option value="1/sala">1/sala</option>
+<option value="4/leito">4/leito</option>
+<option value="1/unidade">1/unidade</option>
+<option value="1/10">1/10</option>
+<option value="fixo">fixo</option>
+</select>
+
+<button onclick="addRule()">Salvar</button>
+
+</div>
+
 <script>
-// --- CONFIGURAÇÃO SUPABASE (Hardcoded) ---
+
+// ================= SUPABASE =================
 const SUPABASE_URL = "https://aykvdakgvugxuurioqum.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5a3ZkYWtndnVneHV1cmlvcXVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MTA1OTIsImV4cCI6MjA4NjE4NjU5Mn0.T3HPPYsmy3-Xi9aBmdkJEWyy6RKqWvSWLtYzKyfwFSg";
 
-// --- BASE DE DADOS LOCAL (RDC 50) ---
-const REGRAS_PADRAO = [
-    { eq: "Cama Hospitalar Fawler", setor: "Enfermaria", regra: "1/leito" },
-    { eq: "Cama Hospitalar Fawler", setor: "UTI", regra: "1/leito" },
-    { eq: "Monitor Multiparâmetro", setor: "UTI", regra: "1/leito" },
-    { eq: "Monitor Multiparâmetro", setor: "Emergencia", regra: "1/leito" },
-    { eq: "Ventilador Pulmonar", setor: "UTI", regra: "1/leito" },
-    { eq: "Bomba de Infusão", setor: "UTI", regra: "4/leito" },
-    { eq: "Bomba de Infusão", setor: "Enfermaria", regra: "1/leito" }, // Estimativa
-    { eq: "Carro de Parada", setor: "Enfermaria", regra: "1/unidade" },
-    { eq: "Carro de Parada", setor: "UTI", regra: "1/unidade" },
-    { eq: "Mesa Cirúrgica", setor: "CC", regra: "1/sala" },
-    { eq: "Foco Cirúrgico", setor: "CC", regra: "1/sala" },
-    { eq: "Carro de Anestesia", setor: "CC", regra: "1/sala" },
-    { eq: "Eletrocautério", setor: "CC", regra: "1/sala" }
-];
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let REGRAS_EXTRAS = []; // Vem do Supabase
-let sb = null;
+let REGRAS_DB = [];
 
-// --- FUNÇÕES ---
-
+// ================= CALCULAR =================
 function calcular() {
-    const inputs = {
-        "Enfermaria": parseInt(document.getElementById('n_enf').value) || 0,
-        "UTI": (parseInt(document.getElementById('n_uti_a').value) || 0) + (parseInt(document.getElementById('n_uti_n').value) || 0),
-        "CC": parseInt(document.getElementById('n_cc').value) || 0,
-        "Emergencia": parseInt(document.getElementById('n_emerg').value) || 0
-    };
 
-    const tbody = document.getElementById('tbodyResults');
-    tbody.innerHTML = "";
+const inputs = {
+Enfermaria: parseInt(document.getElementById("n_enf").value) || 0,
+UTI: parseInt(document.getElementById("n_uti").value) || 0,
+CC: parseInt(document.getElementById("n_cc").value) || 0,
+Emergencia: parseInt(document.getElementById("n_emerg").value) || 0
+};
 
-    // Junta regras padrão + extras
-    const todasRegras = [...REGRAS_PADRAO, ...REGRAS_EXTRAS];
+const tbody = document.getElementById("tbodyResults");
+tbody.innerHTML = "";
 
-    todasRegras.forEach(r => {
-        let qtd = 0;
-        let base = inputs[r.setor] || 0;
+REGRAS_DB.forEach(r => {
 
-        if (base > 0) {
-            if (r.regra === "1/leito" || r.regra === "1/sala") qtd = base;
-            else if (r.regra === "4/leito") qtd = base * 4;
-            else if (r.regra === "1/unidade") qtd = 1;
-            else if (r.regra === "1/10") qtd = Math.ceil(base / 10);
-            else if (r.regra === "fixo") qtd = 1;
+let base = inputs[r.setor] || 0;
+let qtd = 0;
 
-            const tr = `
-                <tr>
-                    <td>${r.eq}</td>
-                    <td><span class="badge">${r.setor}</span></td>
-                    <td>${r.regra}</td>
-                    <td class="qty">${qtd}</td>
-                </tr>
-            `;
-            tbody.innerHTML += tr;
-        }
-    });
+if(base > 0){
+
+switch(r.regra){
+case "1/leito":
+case "1/sala":
+qtd = base;
+break;
+
+case "4/leito":
+qtd = base * 4;
+break;
+
+case "1/unidade":
+qtd = 1;
+break;
+
+case "1/10":
+qtd = Math.ceil(base/10);
+break;
+
+case "fixo":
+qtd = 1;
+break;
 }
 
-function exportToExcel() {
-    const table = document.getElementById("resultTable");
-    const wb = XLSX.utils.table_to_book(table, {sheet: "Dimensionamento"});
-    XLSX.writeFile(wb, "Dimensionamento_Hospitalar.xlsx");
+tbody.innerHTML += `
+<tr>
+<td>${r.eq}</td>
+<td><span class="badge">${r.setor}</span></td>
+<td>${r.regra}</td>
+<td class="qty">${qtd}</td>
+</tr>
+`;
 }
 
-function showTab(id) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    event.target.classList.add('active');
-    document.getElementById('tab-calc').classList.add('hidden');
-    document.getElementById('tab-colab').classList.add('hidden');
-    document.getElementById(`tab-${id}`).classList.remove('hidden');
-    
-    if(id === 'colab') loadDbRules();
+});
 }
 
-function toggleConfig() {
-    document.getElementById('configPanel').classList.toggle('hidden');
+// ================= EXPORTAR =================
+function exportarExcel(){
+
+const table = document.getElementById("resultTable");
+
+if(!table){
+alert("Nada para exportar");
+return;
 }
 
-function saveConfig() {
-    const url = document.getElementById('sbUrl').value;
-    const key = document.getElementById('sbKey').value;
-    if(url && key) {
-        localStorage.setItem('sb_url', url);
-        localStorage.setItem('sb_key', key);
-        initSupabase();
-        alert("Configuração Salva!");
-        toggleConfig();
-    }
+const wb = XLSX.utils.table_to_book(table, {sheet: "Dimensionamento"});
+XLSX.writeFile(wb, "Dimensionamento_Hospitalar.xlsx");
+
 }
 
-function initSupabase() {
-    const url = localStorage.getItem('sb_url');
-    const key = localStorage.getItem('sb_key');
-    if(url && key) {
-        sb = supabase.createClient(url, key);
-        console.log("Supabase Conectado!");
-        loadDbRules();
-    }
+// ================= ADICIONAR =================
+async function addRule(){
+
+const eq = document.getElementById("new_eq").value;
+const setor = document.getElementById("new_setor").value;
+const regra = document.getElementById("new_regra").value;
+
+if(!eq || !setor){
+alert("Preencha os campos");
+return;
 }
 
-async function addRule() {
-    if(!sb) return alert("Configure o Supabase primeiro!");
-    
-    const eq = document.getElementById('new_eq').value;
-    const set = document.getElementById('new_setor').value;
-    const reg = document.getElementById('new_regra').value;
+const { error } = await sb.from("equipamentos_regras").insert({
+equipamento: eq,
+setor: setor,
+regra_quantidade: regra
+});
 
-    if(!eq) return alert("Preencha o nome do equipamento");
-
-    const { error } = await sb.from('equipamentos_regras').insert({
-        equipamento: eq,
-        setor: set,
-        regra_quantidade: reg
-    });
-
-    if(error) alert("Erro ao salvar: " + error.message);
-    else {
-        alert("Regra adicionada com sucesso!");
-        loadDbRules(); // Recarrega
-        document.getElementById('new_eq').value = "";
-    }
-}
-
-async function loadDbRules() {
-    if(!sb) return;
-    
-    const { data, error } = await sb.from('equipamentos_regras').select('*');
-    if(data) {
-        REGRAS_EXTRAS = data.map(d => ({
-            eq: d.equipamento,
-            setor: translateSetor(d.setor), // Ajusta nomes se precisar
-            regra: d.regra_quantidade
-        }));
-        
-        // Atualiza lista visual
-        const list = document.getElementById('dbRulesList');
-        list.innerHTML = data.map(d => `<div>✅ <b>${d.equipamento}</b> (${d.setor}): ${d.regra_quantidade}</div>`).join('');
-        
-        // Recalcula se estiver na aba de calculo
-        calcular();
-    }
-}
-
-function translateSetor(s) {
-    if(s.includes("Cirúrgico")) return "CC";
-    if(s.includes("Imagem")) return "Emergencia"; // Exemplo
-    return s;
-}
-
-// Init
-// const savedUrl = localStorage.getItem('sb_url');
-// if(savedUrl) {
-//     document.getElementById('sbUrl').value = savedUrl;
-//     document.getElementById('sbKey').value = localStorage.getItem('sb_key');
-//     initSupabase();
-// }
-
-// Auto-Init com chaves hardcoded
-sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-console.log("Supabase Conectado (Hardcoded)!");
+if(error){
+alert("Erro: " + error.message);
+}else{
+alert("Salvo!");
 loadDbRules();
+}
 
-calcular(); // Primeira renderização vazia
+}
+
+// ================= CARREGAR =================
+async function loadDbRules(){
+
+try{
+
+const { data, error } = await sb.from("equipamentos_regras").select("*");
+
+if(error){
+console.error(error);
+return;
+}
+
+REGRAS_DB = [];
+
+if(data){
+data.forEach(d=>{
+REGRAS_DB.push({
+eq: d.equipamento,
+setor: d.setor,
+regra: d.regra_quantidade
+});
+});
+}
+
+calcular();
+
+}catch(e){
+console.error("Erro geral:", e);
+}
+
+}
+
+// ================= INIT =================
+document.addEventListener("DOMContentLoaded", ()=>{
+loadDbRules();
+});
 
 </script>
+
 </body>
 </html>
