@@ -1,31 +1,119 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Calculadora RDC</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GTEC Brasil - Dimensionamento RDC</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
-body { font-family: Arial; background:#0f172a; color:white; padding:20px }
-.card { background:#1e293b; padding:20px; border-radius:8px; margin-bottom:20px }
-input, select { width:100%; padding:8px; margin-bottom:10px }
-button { padding:10px; cursor:pointer; background:#10b981; color:white; border:none; border-radius:5px }
-button:hover { opacity:0.9 }
-table { width:100%; margin-top:10px; border-collapse: collapse }
-td, th { padding:8px; border-bottom:1px solid #334155 }
-.badge { background:#334155; padding:3px 6px; border-radius:4px }
-.qty { color:#10b981; font-weight:bold }
-.top-bar { display:flex; justify-content:space-between; align-items:center }
+:root{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --line:#334155;
+  --input:#111827;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --primary:#10b981;
+}
+
+body{
+  margin:0;
+  font-family:Inter, Arial;
+  background:var(--bg);
+  color:var(--text);
+  padding:24px;
+}
+
+.grid{display:grid; gap:1.5rem;}
+.grid.cols-2{grid-template-columns:repeat(1,minmax(0,1fr));}
+@media (min-width:1024px){
+  .grid.cols-2{grid-template-columns:repeat(2,1fr);}
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:20px;
+}
+
+h1,h2{margin-top:0}
+
+label{
+  display:block;
+  font-size:13px;
+  color:var(--muted);
+  margin:8px 0 6px;
+}
+
+input,select{
+  width:100%;
+  padding:10px;
+  background:var(--input);
+  border:1px solid var(--line);
+  border-radius:12px;
+  color:var(--text);
+  margin-bottom:10px;
+}
+
+button{
+  padding:10px 16px;
+  background:var(--primary);
+  border:none;
+  border-radius:12px;
+  color:#fff;
+  cursor:pointer;
+  font-weight:600;
+}
+
+button:hover{opacity:0.9}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+
+th,td{
+  padding:10px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+}
+
+.badge{
+  background:#334155;
+  padding:4px 8px;
+  border-radius:8px;
+  font-size:12px;
+}
+
+.qty{
+  font-weight:bold;
+  color:var(--primary);
+}
+
+.top-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
 </style>
 </head>
 
 <body>
 
+<h1>Dimensionamento Hospitalar</h1>
+
+<div class="grid cols-2">
+
+<!-- PARÂMETROS -->
 <div class="card">
-<h2>Parâmetros</h2>
+<h2>Parâmetros da Unidade</h2>
 
 <label>Enfermaria</label>
 <input type="number" id="n_enf" value="0" oninput="calcular()">
@@ -41,14 +129,14 @@ td, th { padding:8px; border-bottom:1px solid #334155 }
 
 <label>Emergência</label>
 <input type="number" id="n_emerg" value="0" oninput="calcular()">
-
 </div>
 
+<!-- RESULTADO -->
 <div class="card">
 
 <div class="top-bar">
 <h2>Resultado</h2>
-<button onclick="exportarExcel()">📊 Exportar Excel</button>
+<button onclick="exportarExcel()">Exportar Excel</button>
 </div>
 
 <table id="resultTable">
@@ -65,11 +153,19 @@ td, th { padding:8px; border-bottom:1px solid #334155 }
 
 </div>
 
-<div class="card">
-<h2>Nova Regra</h2>
+</div>
 
-<input id="new_eq" placeholder="Equipamento">
-<input id="new_setor" placeholder="Setor (Ex: UTI, UTI NEO, Enfermaria)">
+<!-- NOVA REGRA -->
+<div class="card" style="margin-top:20px">
+<h2>Adicionar Nova Regra</h2>
+
+<label>Equipamento</label>
+<input id="new_eq">
+
+<label>Setor (UTI, UTI NEO, Enfermaria...)</label>
+<input id="new_setor">
+
+<label>Regra</label>
 <select id="new_regra">
 <option value="1/leito">1/leito</option>
 <option value="1/sala">1/sala</option>
@@ -79,65 +175,50 @@ td, th { padding:8px; border-bottom:1px solid #334155 }
 <option value="fixo">fixo</option>
 </select>
 
-<button onclick="addRule()">Salvar</button>
-
+<button onclick="addRule()">Salvar Regra</button>
 </div>
 
 <script>
 
-// ================= SUPABASE =================
 const SUPABASE_URL = "https://aykvdakgvugxuurioqum.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5a3ZkYWtndnVneHV1cmlvcXVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MTA1OTIsImV4cCI6MjA4NjE4NjU5Mn0.T3HPPYsmy3-Xi9aBmdkJEWyy6RKqWvSWLtYzKyfwFSg";
-
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let REGRAS_DB = [];
 
-// ================= CALCULAR =================
-function calcular() {
+function calcular(){
 
 const inputs = {
-Enfermaria: parseInt(document.getElementById("n_enf").value) || 0,
-UTI: parseInt(document.getElementById("n_uti").value) || 0,
-"UTI NEO": parseInt(document.getElementById("n_uti_neo").value) || 0,
-CC: parseInt(document.getElementById("n_cc").value) || 0,
-Emergencia: parseInt(document.getElementById("n_emerg").value) || 0
+Enfermaria: parseInt(n_enf.value)||0,
+UTI: parseInt(n_uti.value)||0,
+"UTI NEO": parseInt(n_uti_neo.value)||0,
+CC: parseInt(n_cc.value)||0,
+Emergencia: parseInt(n_emerg.value)||0
 };
 
-const tbody = document.getElementById("tbodyResults");
-tbody.innerHTML = "";
+tbodyResults.innerHTML="";
 
-REGRAS_DB.forEach(r => {
+REGRAS_DB.forEach(r=>{
 
-let base = inputs[r.setor] || 0;
-let qtd = 0;
+let base = inputs[r.setor]||0;
+if(base<=0) return;
 
-if(base > 0){
+let qtd=0;
 
 switch(r.regra){
 case "1/leito":
 case "1/sala":
-qtd = base;
-break;
-
+qtd=base; break;
 case "4/leito":
-qtd = base * 4;
-break;
-
+qtd=base*4; break;
 case "1/unidade":
-qtd = 1;
-break;
-
-case "1/10":
-qtd = Math.ceil(base/10);
-break;
-
 case "fixo":
-qtd = 1;
-break;
+qtd=1; break;
+case "1/10":
+qtd=Math.ceil(base/10); break;
 }
 
-tbody.innerHTML += `
+tbodyResults.innerHTML+=`
 <tr>
 <td>${r.eq}</td>
 <td><span class="badge">${r.setor}</span></td>
@@ -145,80 +226,51 @@ tbody.innerHTML += `
 <td class="qty">${qtd}</td>
 </tr>
 `;
-}
-
 });
+
 }
 
-// ================= EXPORTAR =================
 function exportarExcel(){
-const table = document.getElementById("resultTable");
-const wb = XLSX.utils.table_to_book(table, {sheet: "Dimensionamento"});
-XLSX.writeFile(wb, "Dimensionamento_Hospitalar.xlsx");
+const wb = XLSX.utils.table_to_book(resultTable,{sheet:"Dimensionamento"});
+XLSX.writeFile(wb,"Dimensionamento_GTEC.xlsx");
 }
 
-// ================= ADICIONAR =================
 async function addRule(){
 
-const eq = document.getElementById("new_eq").value;
-const setor = document.getElementById("new_setor").value.toUpperCase();
-const regra = document.getElementById("new_regra").value;
+const eq=new_eq.value;
+const setor=new_setor.value.toUpperCase();
+const regra=new_regra.value;
 
-if(!eq || !setor){
-alert("Preencha os campos");
-return;
-}
+if(!eq||!setor){alert("Preencha os campos");return;}
 
-const { error } = await sb.from("equipamentos_regras").insert({
-equipamento: eq,
-setor: setor,
-regra_quantidade: regra
+await sb.from("equipamentos_regras").insert({
+equipamento:eq,
+setor:setor,
+regra_quantidade:regra
 });
 
-if(error){
-alert("Erro: " + error.message);
-}else{
-alert("Salvo!");
 loadDbRules();
 }
-}
 
-// ================= CARREGAR =================
 async function loadDbRules(){
 
-try{
-
-const { data, error } = await sb.from("equipamentos_regras").select("*");
-
-if(error){
-console.error(error);
-return;
-}
-
-REGRAS_DB = [];
+const {data}=await sb.from("equipamentos_regras").select("*");
+REGRAS_DB=[];
 
 if(data){
 data.forEach(d=>{
 REGRAS_DB.push({
-eq: d.equipamento,
-setor: d.setor.toUpperCase(),
-regra: d.regra_quantidade
+eq:d.equipamento,
+setor:d.setor.toUpperCase(),
+regra:d.regra_quantidade
 });
 });
 }
 
 calcular();
-
-}catch(e){
-console.error("Erro geral:", e);
 }
 
-}
-
-// ================= INIT =================
-document.addEventListener("DOMContentLoaded", ()=>{
-loadDbRules();
-});
+document.addEventListener("DOMContentLoaded",loadDbRules);
 
 </script>
 
