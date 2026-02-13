@@ -30,11 +30,11 @@ td, th { padding:8px; border-bottom:1px solid #334155 }
 <label>Enfermaria</label>
 <input type="number" id="n_enf" value="0" oninput="calcular()">
 
-<label>UTI</label>
+<label>UTI Adulto</label>
 <input type="number" id="n_uti" value="0" oninput="calcular()">
 
-<label>UTI NEO</label>
-<input type="number" id="n_uti" value="0" oninput="calcular()">
+<label>UTI Neo</label>
+<input type="number" id="n_uti_neo" value="0" oninput="calcular()">
 
 <label>Centro Cirúrgico</label>
 <input type="number" id="n_cc" value="0" oninput="calcular()">
@@ -69,8 +69,7 @@ td, th { padding:8px; border-bottom:1px solid #334155 }
 <h2>Nova Regra</h2>
 
 <input id="new_eq" placeholder="Equipamento">
-<input id="new_setor" placeholder="Setor">
-
+<input id="new_setor" placeholder="Setor (Ex: UTI, UTI NEO, Enfermaria)">
 <select id="new_regra">
 <option value="1/leito">1/leito</option>
 <option value="1/sala">1/sala</option>
@@ -100,6 +99,7 @@ function calcular() {
 const inputs = {
 Enfermaria: parseInt(document.getElementById("n_enf").value) || 0,
 UTI: parseInt(document.getElementById("n_uti").value) || 0,
+"UTI NEO": parseInt(document.getElementById("n_uti_neo").value) || 0,
 CC: parseInt(document.getElementById("n_cc").value) || 0,
 Emergencia: parseInt(document.getElementById("n_emerg").value) || 0
 };
@@ -152,24 +152,16 @@ tbody.innerHTML += `
 
 // ================= EXPORTAR =================
 function exportarExcel(){
-
 const table = document.getElementById("resultTable");
-
-if(!table){
-alert("Nada para exportar");
-return;
-}
-
 const wb = XLSX.utils.table_to_book(table, {sheet: "Dimensionamento"});
 XLSX.writeFile(wb, "Dimensionamento_Hospitalar.xlsx");
-
 }
 
 // ================= ADICIONAR =================
 async function addRule(){
 
 const eq = document.getElementById("new_eq").value;
-const setor = document.getElementById("new_setor").value;
+const setor = document.getElementById("new_setor").value.toUpperCase();
 const regra = document.getElementById("new_regra").value;
 
 if(!eq || !setor){
@@ -189,7 +181,6 @@ alert("Erro: " + error.message);
 alert("Salvo!");
 loadDbRules();
 }
-
 }
 
 // ================= CARREGAR =================
@@ -210,7 +201,7 @@ if(data){
 data.forEach(d=>{
 REGRAS_DB.push({
 eq: d.equipamento,
-setor: d.setor,
+setor: d.setor.toUpperCase(),
 regra: d.regra_quantidade
 });
 });
