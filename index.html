@@ -1127,7 +1127,7 @@ async function agInsert(item){
     return normalized;
   }catch(e){
     console.warn("Falha ao inserir no Supabase, salvando localmente.", e);
-    agUseLocal = true;
+    agUseLocal = false;
     return agInsert(item);
   }
 }
