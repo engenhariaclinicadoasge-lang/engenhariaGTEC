@@ -322,9 +322,14 @@
         <button class="tab" data-page="registro">Registros</button>
         <button class="tab" data-page="dash-geral">Dashboard Geral</button>
         <button class="tab" data-page="dash-hospital">Dashboard Hospital</button>
-        <button class="tab" data-page="implantacao">Implantação</button>
+        <button class="ghost" onclick="openCalc()">🧮 Calculadora implantação</button>
       </nav>
     </div>
+
+
+
+
+
 
     <!-- ALERTA DE VISITA/REUNIÃO -->
     <div id="visitAlert" class="notice hidden" style="margin-top:12px;"></div>
@@ -710,6 +715,28 @@
 const SUPABASE_URL = "https://aykvdakgvugxuurioqum.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5a3ZkYWtndnVneHV1cmlvcXVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MTA1OTIsImV4cCI6MjA4NjE4NjU5Mn0.T3HPPYsmy3-Xi9aBmdkJEWyy6RKqWvSWLtYzKyfwFSg";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+
+
+
+
+function openCalc(){
+  document.getElementById("calcModal").classList.remove("hidden");
+}
+
+function closeCalc(){
+  document.getElementById("calcModal").classList.add("hidden");
+}
+
+
+
+
+
+
+
+
+
+
 
 /** SETOR FIXO */
 const FIXED_SETOR = "GTEC - Grupo Tecnico de Engenharia Clinica.";
@@ -1751,6 +1778,63 @@ document.addEventListener("DOMContentLoaded", async () => {
     HOSPITAIS.map(h => `<option value="${esc(h)}">${esc(h)}</option>`).join("");
 });
 </script>
+
+
+
+
+<!-- MODAL CALCULADORA -->
+<div id="calcModal" class="hidden" style="
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+">
+  <div style="
+    width: 95%;
+    height: 95%;
+    background: #0f172a;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  ">
+    <button onclick="closeCalc()" style="
+      position:absolute;
+      top:10px;
+      right:10px;
+      z-index:10;
+      background:#ef4444;
+      color:white;
+      border:none;
+      padding:8px 12px;
+      border-radius:6px;
+      cursor:pointer;
+    ">✖ Fechar</button>
+
+    <iframe 
+      src="calculadora_gtec.html"
+      style="width:100%; height:100%; border:none;">
+    </iframe>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 </body>
 </html>
