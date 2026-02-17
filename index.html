@@ -308,6 +308,7 @@
         <div>
           <h1>GTEC Brasil</h1>
           <p>Controle de Processos</p>
+          <p>Criado por Eng. Pedro Cardoso</p>
         </div>
       </div>
 
@@ -321,6 +322,7 @@
         <button class="tab active" data-page="cadastro">🖋️Cadastro</button>
         <button class="tab" data-page="registro">🗒️Registros</button>
                 <button class="tab" data-page="agendamentos">📅 Agendamentos</button>
+        <button class="tab" data-page="termo-ref">🧾 Termo de Referência</button>
 <button class="tab" data-page="dash-geral">🪛Dashboard Geral</button>
         <button class="tab" data-page="dash-hospital">🏥Dashboard Hospital</button>
         <button class="ghost" onclick="openCalc()">🧮 Calculadora implantação</button>
@@ -449,6 +451,70 @@
     </p>
   </div>
 </section>
+
+
+<!-- ===================== TERMO DE REFERÊNCIA ===================== -->
+<section id="page-termo-ref" class="hidden grid">
+  <div class="card">
+    <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; margin-bottom: 1rem;">
+      <div>
+        <h2>Acompanhamento de Termo de Referência</h2>
+        <p class="muted">Cadastro e acompanhamento do fluxo do Termo de Referência.</p>
+      </div>
+
+      <div class="group" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:flex-end;">
+        <button id="btnTRLimpar" class="ghost" title="Limpar formulário">🧹 Limpar</button>
+        <button id="btnTRSalvar" class="primary">💾 Salvar</button>
+      </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns: repeat(5, minmax(160px, 1fr)); gap: 12px;">
+      <div>
+        <label>Nº do processo</label>
+        <input id="tr_numero_processo" placeholder="Ex.: 2026/000123" />
+      </div>
+      <div>
+        <label>Setor em que se encontra</label>
+        <input id="tr_setor" placeholder="Ex.: Engenharia / Compras / SESPA" />
+      </div>
+      <div>
+        <label>Data da abertura</label>
+        <input id="tr_data_abertura" type="date" />
+      </div>
+      <div>
+        <label>Equipamento</label>
+        <input id="tr_equipamento" placeholder="Ex.: Tomógrafo / Monitor" />
+      </div>
+      <div>
+        <label>Status</label>
+        <input id="tr_status" placeholder="Ex.: Em elaboração / Em revisão / Concluído" />
+      </div>
+    </div>
+
+    <p class="muted" style="margin-top:10px;">
+      Dica: você pode editar clicando em ✏️ Editar na linha.
+    </p>
+
+    <div class="divider"></div>
+
+    <div class="table-container" style="max-height:650px; overflow:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Nº do processo</th>
+            <th>Setor</th>
+            <th>Data abertura</th>
+            <th>Equipamento</th>
+            <th>Status</th>
+            <th style="width:180px; text-align:right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyTR"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 
 <!-- ===================== DASH GERAL ===================== -->
   <section id="page-dash-geral" class="hidden">
@@ -1791,6 +1857,207 @@ async function saveAg(){
   }
 }
 
+
+/** TERMO DE REFERÊNCIA (Supabase com fallback local) */
+function trLoadLocal(){
+  try{ return JSON.parse(localStorage.getItem(TR_LOCAL_KEY) || "[]"); }
+  catch{ return []; }
+}
+function trSaveLocal(list){
+  localStorage.setItem(TR_LOCAL_KEY, JSON.stringify(list || []));
+}
+function trNormalizeRow(r){
+  const row = { ...(r||{}) };
+  row.numero_processo = normalize(row.numero_processo);
+  row.setor = normalize(row.setor);
+  row.data_abertura = row.data_abertura ? String(row.data_abertura).slice(0,10) : "";
+  row.equipamento = normalize(row.equipamento);
+  row.status = normalize(row.status);
+  return row;
+}
+async function trTryLoadSupabase(){
+  try{
+    const { data: rows, error } = await sb
+      .from("termo_referencia")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if(error) throw error;
+
+    trUseLocal = false;
+    termoRef = (rows||[]).map(trNormalizeRow);
+  }catch(e){
+    console.warn("Termo de Referência: fallback local (tabela/policies não disponíveis).", e);
+    trUseLocal = true;
+    termoRef = trLoadLocal().map(trNormalizeRow);
+  }
+}
+async function trInsert(item){
+  if(trUseLocal){
+    const list = trLoadLocal();
+    const row = trNormalizeRow({
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...item
+    });
+    list.unshift(row);
+    trSaveLocal(list);
+    termoRef = list.map(trNormalizeRow);
+    return row;
+  }
+
+  const payload = {
+    numero_processo: item.numero_processo,
+    setor: item.setor,
+    data_abertura: item.data_abertura || null,
+    equipamento: item.equipamento,
+    status: item.status
+  };
+
+  const { data: rows, error } = await sb
+    .from("termo_referencia")
+    .insert(payload)
+    .select("*");
+
+  if(error) throw error;
+  const row = trNormalizeRow(rows?.[0]);
+  return row;
+}
+async function trUpdate(id, patch){
+  if(trUseLocal){
+    const list = trLoadLocal();
+    const idx = list.findIndex(x => x.id === id);
+    if(idx < 0) return;
+    list[idx] = trNormalizeRow({ ...list[idx], ...patch, updated_at: new Date().toISOString() });
+    trSaveLocal(list);
+    termoRef = list.map(trNormalizeRow);
+    return list[idx];
+  }
+
+  const { data: rows, error } = await sb
+    .from("termo_referencia")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("*");
+
+  if(error) throw error;
+  return trNormalizeRow(rows?.[0]);
+}
+async function trDelete(id){
+  if(trUseLocal){
+    const list = trLoadLocal().filter(x => x.id !== id);
+    trSaveLocal(list);
+    termoRef = list.map(trNormalizeRow);
+    return;
+  }
+  const { error } = await sb.from("termo_referencia").delete().eq("id", id);
+  if(error) throw error;
+}
+function trGetForm(){
+  const item = {
+    numero_processo: normalize($("tr_numero_processo").value),
+    setor: normalize($("tr_setor").value),
+    data_abertura: $("tr_data_abertura").value || "",
+    equipamento: normalize($("tr_equipamento").value),
+    status: normalize($("tr_status").value)
+  };
+  if(!item.numero_processo){ toast("Informe o número do processo."); return null; }
+  if(!item.setor){ toast("Informe o setor em que se encontra."); return null; }
+  if(!item.data_abertura){ toast("Informe a data da abertura."); return null; }
+  if(!item.equipamento){ toast("Informe o equipamento."); return null; }
+  if(!item.status){ toast("Informe o status."); return null; }
+  return item;
+}
+function trClearForm(){
+  trEditingId = null;
+  $("tr_numero_processo").value = "";
+  $("tr_setor").value = "";
+  $("tr_data_abertura").value = "";
+  $("tr_equipamento").value = "";
+  $("tr_status").value = "";
+  $("btnTRSalvar").textContent = "💾 Salvar";
+}
+function renderTRTable(){
+  const tbody = $("tbodyTR");
+  if(!tbody) return;
+
+  const list = (termoRef || []).slice().sort((a,b) => (b.created_at||"").localeCompare(a.created_at||""));
+  tbody.innerHTML = list.map(r => {
+    const d = r.data_abertura ? fmtDate(r.data_abertura) : "";
+    return `
+      <tr>
+        <td>${esc(r.numero_processo || "")}</td>
+        <td>${esc(r.setor || "")}</td>
+        <td>${esc(d)}</td>
+        <td>${esc(r.equipamento || "")}</td>
+        <td>${esc(r.status || "")}</td>
+        <td style="text-align:right; white-space:nowrap;">
+          <button class="ghost" onclick="trEdit('${esc(r.id)}')">✏️ Editar</button>
+          <button class="danger" onclick="trRemove('${esc(r.id)}')">🗑️ Excluir</button>
+        </td>
+      </tr>`;
+  }).join("");
+
+  if(!list.length){
+    tbody.innerHTML = `<tr><td colspan="6" class="muted" style="text-align:center; padding:18px;">Nenhum termo cadastrado.</td></tr>`;
+  }
+}
+async function trSave(){
+  const item = trGetForm();
+  if(!item) return;
+
+  setBusy(true);
+  try{
+    if(trEditingId){
+      await trUpdate(trEditingId, item);
+      toast("Atualizado!");
+    }else{
+      await trInsert(item);
+      toast("Salvo!");
+    }
+    await trTryLoadSupabase();
+    renderTRTable();
+    trClearForm();
+  }catch(e){
+    console.error(e);
+    toast("Erro ao salvar o Termo de Referência.");
+  }finally{
+    setBusy(false);
+  }
+}
+window.trEdit = function(id){
+  const r = (termoRef || []).find(x => x.id === id);
+  if(!r) return;
+  trEditingId = id;
+  $("tr_numero_processo").value = r.numero_processo || "";
+  $("tr_setor").value = r.setor || "";
+  $("tr_data_abertura").value = (r.data_abertura || "").slice(0,10);
+  $("tr_equipamento").value = r.equipamento || "";
+  $("tr_status").value = r.status || "";
+  $("btnTRSalvar").textContent = "💾 Atualizar";
+  // troca para a aba automaticamente
+  const tab = document.querySelector('.tab[data-page="termo-ref"]');
+  if(tab){ tab.click(); }
+}
+window.trRemove = async function(id){
+  if(!confirm("Excluir este termo?")) return;
+  setBusy(true);
+  try{
+    await trDelete(id);
+    await trTryLoadSupabase();
+    renderTRTable();
+    if(trEditingId === id) trClearForm();
+    toast("Excluído!");
+  }catch(e){
+    console.error(e);
+    toast("Erro ao excluir.");
+  }finally{
+    setBusy(false);
+  }
+}
+
+
 /** EVENTS */
 document.addEventListener("DOMContentLoaded", async () => {
   initTheme();
@@ -1799,7 +2066,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   await agTryLoadSupabase();
   await loadFromSupabase();
 
-  // Cadastro
+    await trTryLoadSupabase();
+// Cadastro
   $("btnSalvar").addEventListener("click", onSave);
   $("btnCancelarEdicao").addEventListener("click", onCancelEdit);
   $("btnLimpar").addEventListener("click", clearForm);
@@ -1824,6 +2092,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("btnCloseAgModal").addEventListener("click", closeAgModal);
   $("btnSaveAg").addEventListener("click", saveAg);
 
+
+  // Termo de Referência
+  $("btnTRSalvar").addEventListener("click", trSave);
+  $("btnTRLimpar").addEventListener("click", trClearForm);
   // Import Excel
   $("btnImportExcel").addEventListener("click", importExcel);
 
@@ -1837,6 +2109,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const selHospDash = $("selHospital");
   selHospDash.innerHTML = `<option value="">Selecione um hospital...</option>` +
     HOSPITAIS.map(h => `<option value="${esc(h)}">${esc(h)}</option>`).join("");
+
+  // Render inicial
+  renderAgTable();
+  renderTRTable();
 });
 </script>
 
