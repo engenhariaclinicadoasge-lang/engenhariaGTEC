@@ -926,6 +926,8 @@ function normalizeStatus(v){
   if(low.includes("conclu")) return "Tramitado";
   return x;
 }
+  // ================= ESTADO GLOBAL =================
+let trEditingId = null; // controla se é edição ou novo cadastro
 
 /** THEME */
 const THEME_KEY = "cp_theme_v3";
