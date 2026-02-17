@@ -320,7 +320,8 @@
       <nav>
         <button class="tab active" data-page="cadastro">🖋️Cadastro</button>
         <button class="tab" data-page="registro">🗒️Registros</button>
-        <button class="tab" data-page="dash-geral">🪛Dashboard Geral</button>
+                <button class="tab" data-page="agendamentos">📅 Agendamentos</button>
+<button class="tab" data-page="dash-geral">🪛Dashboard Geral</button>
         <button class="tab" data-page="dash-hospital">🏥Dashboard Hospital</button>
         <button class="ghost" onclick="openCalc()">🧮 Calculadora implantação</button>
       </nav>
@@ -375,32 +376,11 @@
           </div>
         </div>
         <div class="group">
-          <button id="btnAgendarVisita" class="ghost">📅 Agendar visita</button>
-          <button id="btnExportAgExcel" class="ghost" title="Baixar agendamentos em Excel">⬇ Excel (Agend.)</button>
           <button id="btnWhatsAppPreview" class="primary" style="background: #25D366; border-color: #25D366;">WhatsApp</button>
         </div>
       </div>
 
       <div class="divider"></div>
-
-      <!-- TABELA DE AGENDAMENTOS -->
-      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Agendamentos (visita/reunião)</h3>
-      <div class="table-container" style="max-height:220px; overflow:auto; margin-bottom:1.5rem;">
-        <table>
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Hora</th>
-              <th>Hospital</th>
-              <th>Responsável</th>
-              <th>Tipo</th>
-              <th>Realizada</th>
-              <th style="width:180px; text-align:right;">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyAg"></tbody>
-        </table>
-      </div>
 
       <h3 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Processos</h3>
       <div class="table-container" style="max-height:520px; overflow:auto;">
@@ -428,7 +408,49 @@
     </div>
   </section>
 
-  <!-- ===================== DASH GERAL ===================== -->
+  
+
+<!-- ===================== AGENDAMENTOS ===================== -->
+<section id="page-agendamentos" class="hidden grid">
+  <div class="card">
+    <div style="display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; margin-bottom: 1rem;">
+      <div>
+        <h2>Agendamentos</h2>
+        <p class="muted">Controle de visitas/reuniões, marcação, conclusão e exportação em Excel.</p>
+      </div>
+
+      <div class="group" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:flex-end;">
+        <button id="btnAgendarVisita" class="primary">📅 Agendar visita</button>
+        <button id="btnExportAgExcel" class="ghost" title="Baixar agendamentos em Excel">⬇ Excel</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="table-container" style="max-height:650px; overflow:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Hora</th>
+            <th>Hospital</th>
+            <th>Responsável</th>
+            <th>Tipo</th>
+            <th>Realizada</th>
+            <th style="width:180px; text-align:right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyAg"></tbody>
+      </table>
+    </div>
+
+    <p class="muted" style="margin-top:10px; text-align:right;">
+      Dica: o alerta no topo mostra a próxima visita/reunião pendente.
+    </p>
+  </div>
+</section>
+
+<!-- ===================== DASH GERAL ===================== -->
   <section id="page-dash-geral" class="hidden">
     <div class="grid">
       <div class="card">
