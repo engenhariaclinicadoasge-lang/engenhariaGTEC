@@ -376,6 +376,7 @@
         </div>
         <div class="group">
           <button id="btnAgendarVisita" class="ghost">📅 Agendar visita</button>
+          <button id="btnExportAgExcel" class="ghost" title="Baixar agendamentos em Excel">⬇ Excel (Agend.)</button>
           <button id="btnWhatsAppPreview" class="primary" style="background: #25D366; border-color: #25D366;">WhatsApp</button>
         </div>
       </div>
@@ -1389,6 +1390,43 @@ function exportCSV(){
   URL.revokeObjectURL(url);
 }
 
+/** EXPORT AGENDAMENTOS (EXCEL) */
+function exportAgExcel(){
+  const list = agSort(agendamentos);
+  if(!list.length){ toast("Sem agendamentos para exportar."); return; }
+
+  const rows = list.map(a => ({
+    "Data": fmtDate(a.data),
+    "Hora": a.hora || "",
+    "Hospital": a.hospital || "",
+    "Responsável": a.responsavel || "",
+    "Tipo": a.tipo || "Visita",
+    "Realizada": a.realizada ? "Sim" : "Não",
+    "Observação": a.observacao || "",
+    "Criado em": a.created_at ? new Date(a.created_at).toLocaleString() : "",
+    "Atualizado em": a.updated_at ? new Date(a.updated_at).toLocaleString() : ""
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = [
+    { wch: 12 }, // Data
+    { wch: 10 }, // Hora
+    { wch: 45 }, // Hospital
+    { wch: 22 }, // Responsável
+    { wch: 12 }, // Tipo
+    { wch: 10 }, // Realizada
+    { wch: 40 }, // Observação
+    { wch: 22 }, // Criado em
+    { wch: 22 }  // Atualizado em
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
+
+  const stamp = agTodayISO();
+  XLSX.writeFile(wb, `agendamentos_${stamp}.xlsx`);
+}
+
 /** IMPORT EXCEL */
 function normalizeHeader(h){
   return normalize(h).toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
@@ -1748,6 +1786,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Registro
   $("q").addEventListener("input", renderTable);
   $("btnExport").addEventListener("click", exportCSV);
+  $("btnExportAgExcel").addEventListener("click", exportAgExcel);
   $("btnWhatsAppPreview").addEventListener("click", openWaModal);
   $("btnAgendarVisita").addEventListener("click", openAgModal);
 
@@ -1819,22 +1858,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     </iframe>
   </div>
 </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 </body>
 </html>
