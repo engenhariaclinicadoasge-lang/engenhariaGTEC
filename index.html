@@ -1858,14 +1858,9 @@ async function saveAg(){
 }
 
 
-/** TERMO DE REFERÊNCIA (Supabase com fallback local) */
-function trLoadLocal(){
-  try{ return JSON.parse(localStorage.getItem(TR_LOCAL_KEY) || "[]"); }
-  catch{ return []; }
-}
-function trSaveLocal(list){
-  localStorage.setItem(TR_LOCAL_KEY, JSON.stringify(list || []));
-}
+/** TERMO DE REFERÊNCIA (Supabase - salva diretamente) */
+const TR_TABLE = "termos_referencia";
+
 function trNormalizeRow(r){
   const row = { ...(r||{}) };
   row.numero_processo = normalize(row.numero_processo);
@@ -1875,38 +1870,19 @@ function trNormalizeRow(r){
   row.status = normalize(row.status);
   return row;
 }
+
 async function trTryLoadSupabase(){
-  try{
-    const { data: rows, error } = await sb
-      .from("termo_referencia")
-      .select("*")
-      .order("created_at", { ascending: false });
+  const { data: rows, error } = await sb
+    .from(TR_TABLE)
+    .select("*")
+    .order("created_at", { ascending: false });
 
-    if(error) throw error;
+  if(error) throw error;
 
-    trUseLocal = false;
-    termoRef = (rows||[]).map(trNormalizeRow);
-  }catch(e){
-    console.warn("Termo de Referência: fallback local (tabela/policies não disponíveis).", e);
-    trUseLocal = true;
-    termoRef = trLoadLocal().map(trNormalizeRow);
-  }
+  termoRef = (rows || []).map(trNormalizeRow);
 }
-async function trInsert(item){
-  if(trUseLocal){
-    const list = trLoadLocal();
-    const row = trNormalizeRow({
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      ...item
-    });
-    list.unshift(row);
-    trSaveLocal(list);
-    termoRef = list.map(trNormalizeRow);
-    return row;
-  }
 
+async function trInsert(item){
   const payload = {
     numero_processo: item.numero_processo,
     setor: item.setor,
@@ -1916,44 +1892,42 @@ async function trInsert(item){
   };
 
   const { data: rows, error } = await sb
-    .from("termo_referencia")
+    .from(TR_TABLE)
     .insert(payload)
     .select("*");
 
   if(error) throw error;
-  const row = trNormalizeRow(rows?.[0]);
-  return row;
+  return trNormalizeRow(rows?.[0]);
 }
+
 async function trUpdate(id, patch){
-  if(trUseLocal){
-    const list = trLoadLocal();
-    const idx = list.findIndex(x => x.id === id);
-    if(idx < 0) return;
-    list[idx] = trNormalizeRow({ ...list[idx], ...patch, updated_at: new Date().toISOString() });
-    trSaveLocal(list);
-    termoRef = list.map(trNormalizeRow);
-    return list[idx];
-  }
+  const payload = {
+    numero_processo: patch.numero_processo,
+    setor: patch.setor,
+    data_abertura: patch.data_abertura || null,
+    equipamento: patch.equipamento,
+    status: patch.status
+  };
 
   const { data: rows, error } = await sb
-    .from("termo_referencia")
-    .update({ ...patch, updated_at: new Date().toISOString() })
+    .from(TR_TABLE)
+    .update(payload)
     .eq("id", id)
     .select("*");
 
   if(error) throw error;
   return trNormalizeRow(rows?.[0]);
 }
+
 async function trDelete(id){
-  if(trUseLocal){
-    const list = trLoadLocal().filter(x => x.id !== id);
-    trSaveLocal(list);
-    termoRef = list.map(trNormalizeRow);
-    return;
-  }
-  const { error } = await sb.from("termo_referencia").delete().eq("id", id);
+  const { error } = await sb
+    .from(TR_TABLE)
+    .delete()
+    .eq("id", id);
+
   if(error) throw error;
 }
+
 function trGetForm(){
   const item = {
     numero_processo: normalize($("tr_numero_processo").value),
@@ -2016,7 +1990,7 @@ async function trSave(){
       await trInsert(item);
       toast("Salvo!");
     }
-    await trTryLoadSupabase();
+    try{ await trTryLoadSupabase(); }catch(e){ console.error(e); toast('Erro ao carregar Termo de Referência no Supabase. Verifique a tabela/policies.'); termoRef = []; }
     renderTRTable();
     trClearForm();
   }catch(e){
