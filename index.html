@@ -1285,7 +1285,7 @@ function renderTable(){
   });
 
   tbody.innerHTML = filtered.map(r => {
-    const canEdit = (r.status === "Em andamento");
+    const canEdit = (r.status === "Em andamento","Em validação");
     const dot =
       r.status === "Tramitado" ? "st-verde" :
       r.status === "Em validação" ? "st-amarelo" :
