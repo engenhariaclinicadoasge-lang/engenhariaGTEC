@@ -1368,7 +1368,7 @@ function renderVisitAlert(){
 window.onEdit = (id) => {
   const r = data.find(x => x.id === id);
   if(!r) return;
-  if(r.status !== "Em andamento"){
+  if(r.status !== "Em andamento","Em validação"){
     toast("Só é permitido editar quando o status estiver 'Em andamento'.");
     return;
   }
