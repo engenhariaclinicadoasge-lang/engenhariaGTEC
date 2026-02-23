@@ -1430,7 +1430,7 @@ async function onSave(){
   try{
     if(editingId){
       const current = data.find(x => x.id === editingId);
-      if(current && current.status !== "Em andamento"){
+      if(current && current.status !== "Em andamento","Em validação"){
         toast("Não foi possível salvar: o status não está mais 'Em andamento'.");
         return;
       }
